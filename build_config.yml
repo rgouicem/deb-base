@@ -1,0 +1,95 @@
+# PROGRAM INFORMATION
+#---
+
+
+# Name of the directory containing the source files 
+DIRECTORYNAME	: libsnow-1.4.2
+
+# Desired name of the package containing binaries
+BINPACKAGENAME	: snow
+
+# Desired name of the package containing libraries
+LIBPACKAGENAME	: libsnow
+
+# Program version
+VERSION : 1.4.2
+
+# Copyright : choose from one of these values :
+# - gpl
+# - gpl2
+# - gpl3
+# - lgpl
+# - lgpl2
+# - lgpl3
+# - artistic
+# - apache
+# - bsd
+# - mit
+# - a path leading to your own copyright file
+COPYRIGHT : gpl
+
+# The type of package you want to build :
+#- s : build a binary package (eg. snow\_&lt;version&gt;\_&lt;archi&gt;.deb)
+#- l : build library packages (eg. libsnnow\_&lt;version&gt;\_&lt;archi&gt;.deb
+# and libsnow-dev\_&lt;version&gt;\_&lt;archi&gt;.deb)
+#- s l : if you want to build the three previous packages
+PACKAGETYPE : s l
+
+# The list of packages your package depends on during the building process
+# (ie. when you call make)
+BUILDDEPENDS :
+
+# The list of packages you need to have installed when using your program
+# (eg. if you need a more recent version of perl than 5.10,
+# put 'perl-base (> 5.10)). Accepted symbols for versions are <, >, =,
+# <= and >=.
+PACKAGEDEPENDS : 
+
+# FILES TO INCLUDE
+#-----
+
+# In this section, you can use filename expansion to avoid
+# listing a lot of files in the same directory like headers.
+# All paths must be relative to the directory name specified
+# previously.
+
+# List the binaries you want to include in your binary package
+BINARYNAMES : - lib/cami2gspn
+              - lib/cami2smart
+              - lib/snow
+
+# List the libraries you want to include in your library package
+LIBNAMES : - lib/libPNet.a
+
+# List the headers you want to include in the -dev package
+HEADERNAMES : - lib/*.h
+              - interfaces/*.h
+
+
+# MISCELLANEOUS
+#--
+
+# The following values are used to have a "nice" package,
+# with someone to call if there is a problem, descriptions, and so on.
+# Therefore, those are not mandatory, but strongly recommended.
+# All paths must be relative to the directory name specified
+# previously.
+
+# Path to the description file of the binary package
+BINPACKAGEDESCFILE : snow.desc
+
+# Path to the description file of the library packages
+LIBPACKAGEDESCFILE : libsnow.desc
+
+# This package's maintainer name
+DEBFULLNAME : Maxime Bittan
+
+# The e-mail address of the maintainer of this package
+DEBEMAIL : maxime.bittan@gmail.com
+
+# Homepage's URL you want to specify in your package
+HOMEPAGE : https://github.com/CosyVerif/deb-libsnow
+
+# An output log filename to keep track of what edits the package
+# building script did. Can be usefull to track some errors.
+LOGFILE : ../build_config.log
