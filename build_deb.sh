@@ -418,9 +418,9 @@ then
     debuild -us -uc;
 
 #Removing useless files
-  #  rm -rf debian/ && cd ..;
-   # rm -f "$BINTARBALL" "$LIBTARBALL";
-    #rm -f "$BINPACKAGENAME""_$VERSION.debian.tar.gz";
-   # rm -f "$BINPACKAGENAME""_$VERSION.dsc";
-    #rm -f *.build *.changes;
+    rm -rf debian/ && cd ..;
+    rm -f "$BINTARBALL" "$LIBTARBALL";
+    rm -f "$BINPACKAGENAME""_$VERSION.debian.tar.gz";
+    rm -f "$BINPACKAGENAME""_$VERSION.dsc";
+    rm -f *.build *.changes;
 fi
