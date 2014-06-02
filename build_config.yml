@@ -1,7 +1,7 @@
 # Introduction
 #---
 # This configuration file lets you tweak the output package of
-# the _build\_packages.sh_ script. Note that all fields, except those in
+# the _build\_deb.sh_ script. Note that all fields, except those in
 # the miscellaneous section, are <strong>mandatory</strong>. But it is still strongly
 # recommended to fill out every field in this file to have a proper
 # package.
@@ -68,7 +68,6 @@ BUILDDEPENDS : libsdl2-dev libsdl2-2.0-0
 # The list of packages you need to have installed when using your program.
 PACKAGEDEPENDS : - libsdl2-2.0-0
                  - perl-base (> 5.10)
-
 # Files to include
 #-----
 
