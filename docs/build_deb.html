@@ -717,15 +717,15 @@ that _lintian_detected</p>
         
       
         
-        <p>Removing useless files
- rm -rf debian/ &amp;&amp; cd ..;
-rm -f “$BINTARBALL” “$LIBTARBALL”;
-rm -f “$BINPACKAGENAME””<em>$VERSION.debian.tar.gz”;
-rm -f “$BINPACKAGENAME””</em>$VERSION.dsc”;
-rm -f <em>.build </em>.changes;</p>
+        <p>Removing useless files</p>
 
         
-          <div class='highlight'><pre><span class="hljs-keyword">fi</span></pre></div>
+          <div class='highlight'><pre>    rm -rf debian/ &amp;&amp; <span class="hljs-built_in">cd</span> ..;
+    rm <span class="hljs-operator">-f</span> <span class="hljs-string">"<span class="hljs-variable">$BINTARBALL</span>"</span> <span class="hljs-string">"<span class="hljs-variable">$LIBTARBALL</span>"</span>;
+    rm <span class="hljs-operator">-f</span> <span class="hljs-string">"<span class="hljs-variable">$BINPACKAGENAME</span>"</span><span class="hljs-string">"_<span class="hljs-variable">$VERSION</span>.debian.tar.gz"</span>;
+    rm <span class="hljs-operator">-f</span> <span class="hljs-string">"<span class="hljs-variable">$BINPACKAGENAME</span>"</span><span class="hljs-string">"_<span class="hljs-variable">$VERSION</span>.dsc"</span>;
+    rm <span class="hljs-operator">-f</span> *.build *.changes;
+<span class="hljs-keyword">fi</span></pre></div>
         
       
       <div class="fleur">h</div>
