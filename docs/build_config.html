@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>build_config.yml</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="public/stylesheets/normalize.css" />
+  <link rel="stylesheet" media="all" href="docco.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="page">
+
+      <div class="header">
+        
+          <h1>build_config.yml</h1>
+        
+
+        
+      </div>
+
+      
+        
+        <h2 id="introduction">Introduction</h2>
+
+        
+      
+        
+        <p>This configuration file lets you tweak the output package of
+the <em>build_deb.sh</em> script. Note that all fields, except those in
+the miscellaneous section, are <strong>mandatory</strong>. But it is still strongly
+recommended to fill out every field in this file to have a proper
+package.</p>
+
+        
+      
+        
+        <p>This test file is filled to build a binary package and library packages
+(named test, libtest and libtest-dev) at the same time, built from the
+same sources on an amd64 computer.</p>
+
+        
+      
+        
+        <h2 id="filling-this-configuration-file">Filling this configuration file</h2>
+
+        
+      
+        
+        <p>Before filling this configuration file, there are some general things
+you should know.</p>
+<ul>
+<li>Paths are relative to the one specified in the DIRECTORYNAME field</li>
+<li>When asked for a list, you can put each item on the same line, separated
+by a space, or you can write each item on a line beginning with a hyphen
+‘-‘, followed by a space and the item</li>
+</ul>
+
+        
+      
+        
+        <h2 id="program-informations">Program informations</h2>
+
+        
+      
+        
+        
+        
+      
+        
+        <p>Name of the directory containing source files </p>
+
+        
+          <div class='highlight'><pre>DIRECTORYNAME	: libtest-2.3.7</pre></div>
+        
+      
+        
+        <p>Desired name of the package containing binaries (can be left empty if you
+are not building a binary package)</p>
+
+        
+          <div class='highlight'><pre>BINPACKAGENAME	: test</pre></div>
+        
+      
+        
+        <p>Desired name of the package containing libraries (can be left empty if you
+are not building library packages)</p>
+
+        
+          <div class='highlight'><pre>LIBPACKAGENAME	: libtest</pre></div>
+        
+      
+        
+        <p>Program version</p>
+
+        
+          <div class='highlight'><pre>VERSION : 2.3.7</pre></div>
+        
+      
+        
+        <p>Copyright : you must choose from one of these values :</p>
+<ul>
+<li>gpl</li>
+<li>gpl2</li>
+<li>gpl3</li>
+<li>lgpl</li>
+<li>lgpl2</li>
+<li>lgpl3</li>
+<li>artistic</li>
+<li>apache</li>
+<li>bsd</li>
+<li>mit</li>
+<li>a path leading to your own copyright file</li>
+</ul>
+
+        
+      
+        
+        <p>Leaving this field empty will put an empty copyright file in your package</p>
+
+        
+          <div class='highlight'><pre>COPYRIGHT : gpl</pre></div>
+        
+      
+        
+        <p>The type of package you want to build :</p>
+<ul>
+<li>s : build a binary package (eg. test_2.3.7_amd64.deb)</li>
+<li>l : build library packages (eg. libtest_2.3.7_amd64.deb
+and libtest-dev_2.3.7_amd64.deb)</li>
+<li>s l : if you want to build the three previous packages</li>
+</ul>
+
+        
+          <div class='highlight'><pre>PACKAGETYPE : s l</pre></div>
+        
+      
+        
+        <p>The list of packages your package depends on during the building process
+(ie. when you call make).
+You can specify some version constraints for these packages.
+Accepted symbols are &lt;, &gt;, =, &lt;= and &gt;=.</p>
+
+        
+          <div class='highlight'><pre>BUILDDEPENDS : libsdl2-dev libsdl2-2.0-0</pre></div>
+        
+      
+        
+        <p>The list of packages you need to have installed when using your program.</p>
+
+        
+          <div class='highlight'><pre>PACKAGEDEPENDS : - libsdl2-2.0-0
+                 - perl-base (&gt; 5.10)</pre></div>
+        
+      
+        
+        <h2 id="files-to-include">Files to include</h2>
+
+        
+      
+        
+        
+        
+      
+        
+        <p>In this section, you can use filename expansion to avoid
+listing a lot of files in the same directory like headers.
+All paths must be relative to the directory name specified
+previously.</p>
+
+        
+      
+        
+        <p>List the binaries you want to include in your binary package</p>
+
+        
+          <div class='highlight'><pre>BINARYNAMES : bin/testbin1 bin/testbinary</pre></div>
+        
+      
+        
+        <p>List the libraries you want to include in your library package</p>
+
+        
+          <div class='highlight'><pre>LIBNAMES : lib/libTest.a</pre></div>
+        
+      
+        
+        <p>List the headers you want to include in the -dev package</p>
+
+        
+          <div class='highlight'><pre>HEADERNAMES : - lib/*.h
+              - interfaces/*.h</pre></div>
+        
+      
+        
+        <h2 id="miscellaneous">Miscellaneous</h2>
+
+        
+      
+        
+        <p>The following values are used to have a “nice” package,
+with someone to call if there is a problem, descriptions, and so on.
+Therefore, those are not mandatory, but <strong>strongly recommended</strong>.
+All paths must be relative to the directory name specified
+previously.</p>
+
+        
+      
+        
+        <p>Path to the description file of the binary package</p>
+
+        
+          <div class='highlight'><pre>BINPACKAGEDESCFILE : test.desc</pre></div>
+        
+      
+        
+        <p>Path to the description file of the library packages</p>
+
+        
+          <div class='highlight'><pre>LIBPACKAGEDESCFILE : libtest.desc</pre></div>
+        
+      
+        
+        <p>The name of this package’s maintainer</p>
+
+        
+          <div class='highlight'><pre>DEBFULLNAME : John Doe</pre></div>
+        
+      
+        
+        <p>The e-mail address of the maintainer of this package</p>
+
+        
+          <div class='highlight'><pre>DEBEMAIL : john@doe.com</pre></div>
+        
+      
+        
+        <p>Homepage’s URL you want to specify in your package</p>
+
+        
+          <div class='highlight'><pre>HOMEPAGE : http://www.john.doe</pre></div>
+        
+      
+        
+        <p>An output log filename to keep track of what edits the package
+building script did, and what warnings it throwed.
+Can be usefull to track some errors.</p>
+
+        
+          <div class='highlight'><pre>LOGFILE : ../build_package.log</pre></div>
+        
+      
+      <div class="fleur">h</div>
+    </div>
+  </div>
+</body>
+</html>
