@@ -69,7 +69,7 @@ if ( $lintianLog =~ /out-of-date-standards-version \d\.\d\.\d \(current is (\d\.
 }
 if ( $lintianLog =~ /ancient-standards-version \d\.\d\.\d \(current is (\d\.\d\.\d)\)/ ) {
     my$std_version = $1;
-    $control =~ s/Standards-Version: \d\.\d\.\d/Standards-Version: $std_version/;
+    $control =~ s/Standards-Version: (\d\.\d\.\d)/Standards-Version: $std_version/;
     print LOG "standards version changed from $1 to $std_version\n" if $do_log;
 }
 if ( $lintianLog =~ /debhelper-but-no-misc-depends/ ) {
