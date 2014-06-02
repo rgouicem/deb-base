@@ -11,7 +11,7 @@ $config = <IN>;
 # remove comments
 $config =~ s/#.*\n//g;
 # rearrange lists
-$config =~ s/\n\s*-/ /g;
+$config =~ s/\n\s*-//g;
 $config =~ s/\s*- / /g;
 # remove empty lines
 $config =~ s/\n\n/\n/g;
@@ -24,7 +24,21 @@ $config =~ s/([^\s][^\n]+=[^\n]+)\n/export $1;\n/g;
 # fix URLs
 $config =~ s#="//#://#g;
 
-print $config;
+#Remove useless spaces
+$config =~ s/\n{2,}/\n/g;
+$config =~ s/^\n(.+)$/$1/sg;
 
+#Adding comas in BUILDEPEND and PACKAGEDEPENDS
+$config =~ /BUILDDEPENDS=\"(.*?)\";/;
+$res=$1;
+$res=~s/ (?=[^\d\(\s])/, /g, $1;
+$config =~ s/BUILDDEPENDS=\"(.*?)\";/BUILDDEPENDS=\"$res\";/;
+
+$config =~ /PACKAGEDEPENDS=\"(.*?)\";/;
+$res=$1;
+$res=~s/ (?=[^\d\(\s])/, /g, $1;
+$config =~ s/PACKAGEDEPENDS=\"(.*?)\";/PACKAGEDEPENDS=\"$res\";/;
+$"="\n";
+print $config;
 close IN;
 
