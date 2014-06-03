@@ -87,7 +87,7 @@ eval `./config_parser.pl build_config.yml`;
 #Here, we are checking the presence of a Makefile.
 #If there is no Makefile, the script quits immediatly.
 #Debian tools need that in order to build your program.
-
+CURR=`pwd`;
 cd $DIRECTORYNAME;
 if [ ! -f Makefile ] 
 then
@@ -261,14 +261,15 @@ then
 	echo "$library usr/lib" >> debian/$LIBPACKAGENAME.install
     done;
 
-    if [ ! -z $HEADERNAMES ] ; then
+    if [ ! -z "$HEADERNAMES" ] ; then
 	rm -f debian/$LIBPACKAGENAME-dev.install;
 	for header in $HEADERNAMES
 	do
 	    echo "$header usr/include/" >> debian/$LIBPACKAGENAME-dev.install
 	done;
     else
-	perl -0777 -pi -e "s/Package: $LIBPACKAGENAME-dev.+?\n\n//s" debian/control
+	perl -0777 -pi -e "s/Package: $LIBPACKAGENAME-dev.+?\n\n//s" \
+	    debian/control
     fi
    
 #If the user wants to build both types of packages, we create a .install file
@@ -288,18 +289,20 @@ then
 	env echo -e -n "\n" >> debian/control
 	echo "Package: $BINPACKAGENAME" >> debian/control
 	echo "Architecture: any" >> debian/control
-	echo 'Depends: ${shlibs:Depends}, ${misc:Depends}' >> debian/control
+	if [ ! -z "$PACKAGEDEPENDS" ]
+	then
+	    echo 'Depends: ${shlibs:Depends}, ${misc:Depends}, '\
+"$PACKAGEDEPENDS" >> debian/control
+	else
+	    echo 'Depends: ${shlibs:Depends}, ${misc:Depends}' >>debian/control
+	fi
 	echo 'Description: <insert up to 60 chars description>' >>debian/control
 	echo ' <insert long description, indented with spaces>' >>debian/control
     fi
 
 #Now, we have to add the dependencies of the packages, in the control file.
-
-    if [ ! -z $PACKAGEDEPENDS ]
-    then
-	perl -pi -e 's/^(Depends:.+)$/$1, '"$PACKAGEDEPENDS/" debian/control 
-    fi   
-    if [ ! -z $BUILDDEPENDS ]
+    echo " VARIABLE : : : : : : : $BUILDDEPENDS"
+    if [ ! -z "$BUILDDEPENDS" ]
     then
 	perl -pi -e 's/(Build-Depends:.+)$/$1, '"$BUILDDEPENDS/" debian/control
     fi
@@ -317,7 +320,7 @@ then
 #errors. 
 
     debuild -S -uc -us
-    ../correct_lintian.pl  ../"$LIBPACKAGENAME""_$VERSION""_source.build"
+    $CURR/correct_lintian.pl  ../"$LIBPACKAGENAME""_$VERSION""_source.build"
    
 #<a id='libbuild'>Building the package</a>
 #-----------------------------------------
@@ -328,11 +331,11 @@ then
 
 #We now have to remove the debian directory, the tarballs, and some files
 #created by _debuild_.
-    #rm -rf debian/ && cd ..;
-    #rm -f "$BINTARBALL" "$LIBTARBALL";
-    #rm -f "$LIBPACKAGENAME""_$VERSION.debian.tar.gz";
-    #rm -f "$LIBPACKAGENAME""_$VERSION.dsc";
-    #rm -f *.build *.changes;
+    rm -rf debian/ && cd ..;
+    rm -f "$BINTARBALL" "$LIBTARBALL";
+    rm -f "$LIBPACKAGENAME""_$VERSION.debian.tar.gz";
+    rm -f "$LIBPACKAGENAME""_$VERSION.dsc";
+    rm -f *.build *.changes;
 
 #If the user wanted to create both type of packages, we can exit the script
 #because we've done that.
@@ -342,8 +345,10 @@ then
     fi
 #<a id'=bin'>Building the binary package</a>
 #-------------------------------------------
+
 elif [ ! -z $BINTARBALL ] 
 then
+
 #<a id='bindeb'>Creation of the debian files</a>
 #-----------------------------------------------
 
@@ -396,12 +401,12 @@ then
     echo "usr/bin" >> debian/$BINPACKAGENAME.dirs
 
 #Adding dependencies, if there are any
-    if [ ! -z $PACKAGEDEPENDS ]
+    if [ ! -z "$PACKAGEDEPENDS" ]
     then
 	perl -pi -e 's/^(Depends:.+)$/$1, '"$PACKAGEDEPENDS/" debian/control 
     fi
 
-    if [ ! -z $BUILDDEPENDS ]
+    if [ ! -z "$BUILDDEPENDS" ]
     then
 	perl -pi -e 's/^(Build-Depends:.+)$/$1, '"$BUILDDEPENDS/" debian/control
     fi
@@ -412,7 +417,7 @@ then
 #We build the source package, and then we correct some of the mistakes
 #that _lintian_detected
     debuild -S -uc -us
-    ../correct_lintian.pl  ../"$BINPACKAGENAME""_$VERSION""_source.build"
+    $CURR/correct_lintian.pl ../"$BINPACKAGENAME""_$VERSION""_source.build"
     
 
 #<a id='libbuild'>Building the package</a>
