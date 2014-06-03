@@ -261,11 +261,15 @@ then
 	echo "$library usr/lib" >> debian/$LIBPACKAGENAME.install
     done;
 
-    rm -f debian/$LIBPACKAGENAME-dev.install;
-    for header in $HEADERNAMES
-    do
-	echo "$header usr/include/" >> debian/$LIBPACKAGENAME-dev.install
-    done;
+    if [ ! -z $HEADERNAMES ] ; then
+	rm -f debian/$LIBPACKAGENAME-dev.install;
+	for header in $HEADERNAMES
+	do
+	    echo "$header usr/include/" >> debian/$LIBPACKAGENAME-dev.install
+	done;
+    else
+	perl -0777 -pi -e "s/Package: $LIBPACKAGENAME-dev.+?\n\n//s" debian/control
+    fi
    
 #If the user wants to build both types of packages, we create a .install file
 #and a .dirs file containing the right informations. 
@@ -297,7 +301,7 @@ then
     fi   
     if [ ! -z $BUILDDEPENDS ]
     then
-	perl -pi -e 's/^(Build-Depends:.+)$/$1, '"$BUILDDEPENDS/" debian/control
+	perl -pi -e 's/(Build-Depends:.+)$/$1, '"$BUILDDEPENDS/" debian/control
     fi
 
 #<a id='libsource'>Creation of the source package</a>
@@ -324,11 +328,11 @@ then
 
 #We now have to remove the debian directory, the tarballs, and some files
 #created by _debuild_.
-    rm -rf debian/ && cd ..;
-    rm -f "$BINTARBALL" "$LIBTARBALL";
-    rm -f "$LIBPACKAGENAME""_$VERSION.debian.tar.gz";
-    rm -f "$LIBPACKAGENAME""_$VERSION.dsc";
-    rm -f *.build *.changes;
+    #rm -rf debian/ && cd ..;
+    #rm -f "$BINTARBALL" "$LIBTARBALL";
+    #rm -f "$LIBPACKAGENAME""_$VERSION.debian.tar.gz";
+    #rm -f "$LIBPACKAGENAME""_$VERSION.dsc";
+    #rm -f *.build *.changes;
 
 #If the user wanted to create both type of packages, we can exit the script
 #because we've done that.

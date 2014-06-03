@@ -17,10 +17,8 @@ $config =~ s/\s*- / /g;
 $config =~ s/\n\n/\n/g;
 # substitute : by = and put quotes
 $config =~ s/\s*:[^\S\n]*/="/g;
-# end end of line quotes
-$config =~ s/([^\s])\n/$1"\n/g;
-# add export and ;
-$config =~ s/([^\s][^\n]+=[^\n]+)\n/export $1;\n/g;
+# add export, end of line quotes and ;
+$config =~ s/([^\s][^\n]+=[^\n]+)\n/export $1";\n/g;
 # fix URLs
 $config =~ s#="//#://#g;
 
