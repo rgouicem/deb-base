@@ -3,7 +3,7 @@
 # We are going to read the build file (a log of the source package building)
 # in slurp mode, then we will check each possible error (not exhaustively)
 # detected by lintian (a tool that checks if the package is conform with
-# Debian policy) and correct the package building configuration files 
+# Debian policy) and fix the package building configuration files 
 # accordingly.
 
 use strict;
@@ -64,11 +64,11 @@ $control =~ s/\n{2,}/\n\n/sg;
 
 # Editing copyright
 my$url = $ENV{HOMEPAGE};
-#my@devnames = split /;/, $ENV{DEVNAMES};
-#my@devmails = split /;/, $ENV{DEVMAILS};
-#my@devyears = split /;/, $ENV{DEVYEARS};
+my$devs = $ENV{DEVS};
+$devs =~ s/>\s+?([^L])/>\n           $1/gs;
+$devs = $devs."\n";
 $copyright =~ s#(Source:) <url://example.com>#$1 $url#;
-#$copyright =~ s/(Copyright:) <.+?> <.+?>\n\s+? <.+?> <.+?>\n/$1 
+$copyright =~ s/(Copyright:) <.+?> <.+?>\n\s+? <.+?> <.+?>\n/$1 $devs/;
 
 # Matching errors and correcting
 if ( $lintianLog =~ /package-needs-versioned-debhelper-build-depends (.*?)[\s]/ ) {
