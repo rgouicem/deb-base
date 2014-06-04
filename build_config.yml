@@ -56,7 +56,8 @@ COPYRIGHT : gpl
 #- s : build a binary package (eg. test\_2.3.7\_amd64.deb)
 #- l : build library packages (eg. libtest\_2.3.7\_amd64.deb
 # and libtest-dev\_2.3.7\_amd64.deb)
-#- s l : if you want to build the three previous packages
+#- s l : if you want to build the three previous packages (you can also write
+#  l s).
 PACKAGETYPE : s l
 
 # The list of packages your package depends on during the building process
@@ -103,7 +104,7 @@ BINPACKAGEDESCFILE : test.desc
 LIBPACKAGEDESCFILE : libtest.desc
 
 # The name of this package's maintainer
-DEBFULLNAME : John Doe
+DEBFULLNAME : - John Doe
 
 # The e-mail address of the maintainer of this package
 DEBEMAIL : john@doe.com
