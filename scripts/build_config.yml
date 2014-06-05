@@ -120,5 +120,5 @@ HOMEPAGE : http://www.john.doe
 
 # An output log filename to keep track of what edits the package
 # building script did, and what warnings it throwed.
-# Can be usefull to track some errors.
+# Can be useful to track some errors.
 LOGFILE : ../build_package.log
