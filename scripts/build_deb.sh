@@ -74,12 +74,36 @@ then
 fi
 
 #Then, we parse the configuration file. This is done by the perl script 
-#_config\_parser.pl_. This script must also be in the same directory as this
-#script. This works because the script that parses the file produces an output
-#that looks like "export NAME=VALUE;", which is actually shell commands that
-#can be passed to the shell command eval.
+#`config_parser.pl`. This script must also be in the same directory as this
+#script. `config_parser.pl` reads the configuration file, and produces an
+#output that looks like that : `export NAME=VALUE;`. The script that parses
+#the configuration file also check if the user has made some mistakes when 
+#he was filling it (for example, it checks if DIRECTORYNAME contains a path 
+#that leads to an existing directory). So, we have to check if the script has
+#terminated successfully before continuing. If it hasn't, we print an error
+#message and quit the script immediatly.
 
-eval `./config_parser.pl build_config.yml`;
+vars=`./config_parser.pl build_config.yml`;
+res=$?;
+case $res in
+    "0") eval "$vars";;
+    "1") echo "Error in build_config.yml : DIRECTORYNAME doesn't lead to an \
+existing directory." >&2 ;exit 4;;
+    "2") echo "Error in build_config.yml : PACKAGETYPE is empty" >&2 ; exit 4;;
+    "3") echo "Error in build_config.yml : Unknown type of package">&2 ;exit 4;;
+    "4") echo "Error in build_config.yml : Version number missing (VERSION is \
+empty)" >&2 ; exit 4;;
+    "5") echo "Error in build_config.yml : BINPACKAGENAME is empty">&2 ;exit 4;;
+    "6") echo "Error in build_config.yml : LIBPACKAGENAME is empty">&2 ;exit 4;;
+    "7") echo "Error in build_config.yml : COPYRIGHT variable doesn't contain \
+a path that lead to an existing file">&2 ;exit 4;;
+    "8") echo "Error in build_config.yml : DEVS is empty (and it should'nt \
+because COPYRIGHT isn't a file)" >&2 ; exit 4;;
+    "9") echo "Error in build_config.yml : BINARYNAMES is empty">&2; exit 4;;
+    "10") echo "Error in build_config.yml : LIBNAMES and HEADERNAMES are \
+empty">&2;exit 4;;
+    *) echo "Unknown error">&2;exit 4;;
+esac
 
 #<a id='makefile'>Looking for the Makefile</a>
 #---------------------------------------------
@@ -258,14 +282,16 @@ then
     rm -f debian/$LIBPACKAGENAME.install
     for library in $LIBNAMES
     do
-	echo "$library usr/lib" >> debian/$LIBPACKAGENAME.install
+	echo "$library usr/lib/$LIBPACKAGENAME" >> \
+	    debian/$LIBPACKAGENAME.install
     done;
 
     if [ ! -z "$HEADERNAMES" ] ; then
 	rm -f debian/$LIBPACKAGENAME-dev.install;
 	for header in $HEADERNAMES
 	do
-	    echo "$header usr/include/" >> debian/$LIBPACKAGENAME-dev.install
+	    echo "$header usr/include/$LIBPACKAGENAME" >> \
+		debian/$LIBPACKAGENAME-dev.install
 	done;
     else
 	perl -0777 -pi -e "s/Package: $LIBPACKAGENAME-dev.+?\n\n//s" \
@@ -301,7 +327,6 @@ then
     fi
 
 #Now, we have to add the dependencies of the packages, in the control file.
-    echo " VARIABLE : : : : : : : $BUILDDEPENDS"
     if [ ! -z "$BUILDDEPENDS" ]
     then
 	perl -pi -e 's/(Build-Depends:.+)$/$1, '"$BUILDDEPENDS/" debian/control
