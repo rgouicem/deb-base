@@ -59,9 +59,7 @@ close COPYRIGHT;
 my$do_log = open LOG, ">", "$ENV{LOGFILE}";
 if($do_log) {
     my$date = scalar localtime(time);
-    print LOG "correct_lintian.pl log file.\nThis log lists edits made by the\
- script and warnings/errors that happened during debian package building. \
-You may want to correct them and launch a new build.\n\nTimestamp: $date\n\n";
+    print LOG "correct_lintian.pl log file.\nThis log lists edits made by the script and warnings/errors that happened during debian package building. You may want to correct them and launch a new build.\n\nTimestamp: $date\n\n";
 }
 
 # File edition
@@ -87,10 +85,8 @@ if ( open DESC, $libpackdesc ) {
     my@descriptions = split /\n\n/, $desc;
     $descriptions[0] =~ s/\n/\n /gs;
     $descriptions[1] =~ s/\n/\n /gs;
-    $control =~ s/(Package: $name[\s]+Section: libs[\s]+Architecture:.*?[\s]+\
-Depends:.*?[\s]+Description:) <.*?>[\s]+ <.*?>/$1 $descriptions[0]\n/s;
-    $control =~ s/(Package: $name-dev[\s]+Section:.*?[\s]+Architecture:.*?[\s]+\
-Depends:.*?[\s]+Description:) <.*?>[\s]+ <.*?>/$1 $descriptions[1]\n/s;
+    $control =~ s/(Package: $name[\s]+Section: libs[\s]+Architecture:.*?[\s]+Depends:.*?[\s]+Description:) <.*?>[\s]+ <.*?>/$1 $descriptions[0]\n/s;
+    $control =~ s/(Package: $name-dev[\s]+Section:.*?[\s]+Architecture:.*?[\s]+Depends:.*?[\s]+Description:) <.*?>[\s]+ <.*?>/$1 $descriptions[1]\n/s;
     close DESC;
 }
 $control =~ s/\n{2,}/\n\n/sg;
@@ -113,20 +109,17 @@ $copyright =~ s/(Copyright:) <.+?> <.+?>\n\s+? <.+?> <.+?>\n/$1 $devs/;
 if ($lintianLog =~ /package-needs-versioned-debhelper-build-depends (.*?)[\s]/){
     my$dh_version = $1;
     $control =~ s/debhelper (\(.*?\))/debhelper \(>= $dh_version\)/;
-    print LOG "build depends debhelper version changed from $1 to \
-(>= $dh_version)\n" if $do_log;
+    print LOG "build depends debhelper version changed from $1 to (>= $dh_version)\n" if $do_log;
 }
 # Getting _standards_ version right
 if ($lintianLog =~ /out-of-date-standards-version \d\.\d\.\d \(current is (\d\.\d\.\d)\)/){
     my$std_version = $1;
-    $control =~ s/Standards-Version: (\d\.\d\.\d)/Standards-Version: \
-$std_version/;
+    $control =~ s/Standards-Version: (\d\.\d\.\d)/Standards-Version: $std_version/;
     print LOG "standards version changed from $1 to $std_version\n" if $do_log;
 }
 if ($lintianLog =~ /ancient-standards-version \d\.\d\.\d \(current is (\d\.\d\.\d)\)/){
     my$std_version = $1;
-    $control =~ s/Standards-Version: (\d\.\d\.\d)/Standards-Version: \
-$std_version/;
+    $control =~ s/Standards-Version: (\d\.\d\.\d)/Standards-Version: $std_version/;
     print LOG "standards version changed from $1 to $std_version\n" if $do_log;
 }
 # Adding missing generated dependencies
