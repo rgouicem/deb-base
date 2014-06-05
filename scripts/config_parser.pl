@@ -39,7 +39,8 @@ $config =~ s/PACKAGEDEPENDS=\"(.*?)\";/PACKAGEDEPENDS=\"$res\";/;
 
 #Now we're going to check if DIRECTORYNAME contains a valid directory
 $config =~ /DIRECTORYNAME=\"(.*?)\";/;
-#exit 1 if (!(-d $1));
+$dirname=$1;
+exit 1 if (!(-d $dirname));
 
 #Checking version
 $config =~ /VERSION=\"(.*?)\";/;
@@ -71,7 +72,7 @@ if (($cop eq "gpl") || ($cop eq "gpl2") || ($cop eq "gpl3") || ($cop eq "lgpl")
     || ($cop eq "apache") || ($cop eq "bsd") || ($cop eq "mit")){
     $isvalue=1
 }
-exit 7 if ($isvalue!=1 && $cop ne "" && (! (-f $cop)));
+exit 7 if ($isvalue!=1 && $cop ne "" && (! (-f "$dirname/$cop")));
 exit 8 if($isvalue==1 && $devs eq "");
 
 #Checking if BINARYNAMES is empty
