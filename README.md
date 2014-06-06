@@ -3,6 +3,8 @@ deb-base
 
 ##Summary
 
+<div style='text-align : justify;'>
+
 Here's what you can find on this README :
 
 1. [Quick introduction to Debian Packages](#introdeb)
@@ -83,3 +85,5 @@ build a library package. The first one is name according this pattern :
 the libraries. The second one is named according to the following pattern :
 `<LIBPACKAGENAME>-dev_<VERSION>_<archi>.deb`. This is the package where you'll
 find the header files you wanted to include 
+
+</div>
