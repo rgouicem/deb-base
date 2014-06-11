@@ -95,7 +95,7 @@ $control =~ s/\n{2,}/\n\n/sg;
 # contacts, or the project's homepage.
 my$url = $ENV{HOMEPAGE};
 my$devs = $ENV{DEVS};
-$devs =~ s/>\s+?([^L])/>\n           $1/gs;
+$devs =~ s/;/\n  /gs;
 $devs = $devs."\n";
 $copyright =~ s#(Source:) <url://example.com>#$1 $url#;
 $copyright =~ s/(Copyright:) <.+?> <.+?>\n\s+? <.+?> <.+?>\n/$1 $devs/;

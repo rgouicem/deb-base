@@ -2,7 +2,7 @@ SCRIPTS_DIR = ./scripts/
 DOCS_DIR = ./docs/
 RESOURCES_DIR = ./resources/
 
-all: build_package build_docs
+all: build_package
 
 build_package: $(SCRIPTS_DIR)build_deb.sh $(SCRIPTS_DIR)config_parser.pl $(SCRIPTS_DIR)build_config.yml $(SCRIPTS_DIR)correct_lintian.pl
 	cd $(SCRIPTS_DIR) && ./build_deb.sh

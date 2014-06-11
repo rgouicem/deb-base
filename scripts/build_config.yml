@@ -2,34 +2,37 @@
 #---
 # This configuration file lets you tweak the output package of
 # the _build\_deb.sh_ script. Note that all fields, except those in
-# the miscellaneous section, are <strong>mandatory</strong>. But it is still strongly
-# recommended to fill out every field in this file to have a proper
+# the miscellaneous section, are <strong>mandatory</strong>. But it is still
+# strongly recommended to fill out every field in this file to have a proper
 # package.
 
-# This test file is filled to build a binary package and library packages
-# (named test, libtest and libtest-dev) at the same time, built from the
-# same sources on an amd64 computer.
+# This example file is filled to build a binary package and library packages
+# named test, libtest and libtest-dev at the same time, built from the
+# same sources on an amd64 computer (the architecture of your processor doesn't
+# matter when using this script, it's just that the output packages will have
+# it at the end of their name).
 
 # Filling this configuration file
 #---
 # Before filling this configuration file, there are some general things
 # you should know.
-# - Paths are relative to the one specified in the DIRECTORYNAME field
+# - Paths are relative to the one specified in the `DIRECTORYNAME` field
 # - When asked for a list, you can put each item on the same line, separated
 # by a space, or you can write each item on a line beginning with a hyphen
-# '-', followed by a space and the item
+# '-', followed by a space and the item (see the examples in this file)
 
 # Program informations
 #---
 
-# Name of the directory containing source files 
+# Name of the directory containing source files. This path must be relative
+# to where the script is run from.
 DIRECTORYNAME	: libtest-2.3.7
 
 # Desired name of the package containing binaries (can be left empty if you
 # are not building a binary package)
 BINPACKAGENAME	: test
 
-# Desired name of the package containing libraries (can be left empty if you
+# Desired name of the packages containing libraries (can be left empty if you
 # are not building library packages)
 LIBPACKAGENAME	: libtest
 
@@ -37,33 +40,38 @@ LIBPACKAGENAME	: libtest
 VERSION : 2.3.7
 
 # Copyright : you must choose from one of these values :
-# - gpl
-# - gpl2
-# - gpl3
-# - lgpl
-# - lgpl2
-# - lgpl3
-# - artistic
-# - apache
-# - bsd
-# - mit
-# - a path leading to your own copyright file
-
+# - `gpl`
+# - `gpl2`
+# - `gpl3`
+# - `lgpl`
+# - `lgpl2`
+# - `lgpl3`
+# - `artistic`
+# - `apache`
+# - `bsd`
+# - `mit`
+# - a path leading to your own copyright file. If using your own file
 # Leaving this field empty will put an empty copyright file in your package
 COPYRIGHT : gpl
 
 # Developers' names, email addresses and years of activity on this project.
 # Must be filled this way, and this way only to have a proper copyright
-# file : `years name <email>`
-DEVS : - 2012-2014 Jane Doe <jane@doe.com>
-       - 2010-2012 2013-2014 Will Smith <will@smith.com>
+# file : `years name <email>`. If you are not using a generated copyright file
+# (ie. the field `COPYRIGHT` is a path to your own copyright file or left
+# blank), please leave this field empty.
+DEVS :
+  - 2012-2014 Jane Doe <jane@doe.com>
+  - 2010-2012 2013-2014 Will Smith <will@smith.com>
 
 # The type of package you want to build :
-#- s : build a binary package (eg. `test_2.3.7_amd64.deb`)
-#- l : build library packages (eg. `libtest_2.3.7_amd64.deb`
+#- `s` : build a binary package (eg. `test_2.3.7_amd64.deb`)
+#- `l` : build library packages (eg. `libtest_2.3.7_amd64.deb`
 # and `libtest-dev_2.3.7_amd64.deb`)
-#- s l : if you want to build the three previous packages (you can also write
+#- `s l` : if you want to build the three previous packages (you can also write
 #  l s).
+# Note that if you put the `s` option (respectively `l` option), the
+# `BINPACKAGENAME` (respectively `LIBPACKAGENAME`) field <strong>must<\strong>
+# be filled.
 PACKAGETYPE : s l
 
 # The list of packages your package depends on during the building process
@@ -73,15 +81,18 @@ PACKAGETYPE : s l
 BUILDDEPENDS : libsdl2-dev libsdl2-2.0-0
 
 # The list of packages you need to have installed when using your program.
-PACKAGEDEPENDS : - libsdl2-2.0-0
-                 - perl-base (> 5.10)
+# You can specify version constraints as explained for `BUILDDEPENDS` field.
+PACKAGEDEPENDS :
+  - libsdl2-2.0-0
+  - perl-base (> 5.10)
+
 # Files to include
 #-----
 
-# In this section, you can use filename expansion to avoid
-# listing a lot of files in the same directory like headers.
-# All paths must be relative to the directory name specified
-# previously.
+# In this section, you can use filename expansion to avoid listing a lot of
+# files in the same directory like headers or libraries.
+# All paths must be relative to the directory specified in `DIRECTORYNAME`
+# field previously.
 
 # List the binaries you want to include in your binary package
 BINARYNAMES : bin/testbin1 bin/testbinary
@@ -90,27 +101,34 @@ BINARYNAMES : bin/testbin1 bin/testbinary
 LIBNAMES : lib/libTest.a
 
 # List the headers you want to include in the -dev package
-HEADERNAMES : - lib/*.h
-              - interfaces/*.h
+HEADERNAMES :
+  - lib/*.h
+  - interfaces/*.h
 
 
 # Miscellaneous
 #--
 
-# The following values are used to have a "nice" package,
-# with someone to call if there is a problem, descriptions, and so on.
-# Therefore, those are not mandatory, but <strong>strongly recommended</strong>.
-# All paths must be relative to the directory name specified
-# previously.
+# The following values are used to have a "nice" package, with someone to call
+# if there is a problem, descriptions, and so on. Therefore, those are not
+# mandatory, but <strong>strongly recommended</strong>.
+# All paths must be relative to the directory name specified in `DIRECTORYNAME`
+# field previously.
 
-# Path to the description file of the binary package
+# Path to the description file of the binary package. This description will be
+# useful for the user if he wants to know what your package does before
+# installing it, using the `dpkg -I` command, or a graphical package manager.
+# You will find how to write this file in the README.md document provided with
+# the scripts.
 BINPACKAGEDESCFILE : test.desc
 
-# Path to the description file of the library packages
-LIBPACKAGEDESCFILE : libtest.desc
+# Path to the description file of the library packages. Same as
+# `BINPACKAGEDESCFILE` but for the library packages (in this example, for
+# `libtest_2.3.7_amd64.deb` and `libtest-dev_2.3.7_amd64.deb`
+LIBPACKAGEDCFILE : libtest.desc
 
-# The name of this package's maintainer
-DEBFULLNAME : - John Doe
+# The name of this package's maintainer (it should be yours).
+DEBFULLNAME : John Doe
 
 # The e-mail address of the maintainer of this package
 DEBEMAIL : john@doe.com
@@ -118,7 +136,6 @@ DEBEMAIL : john@doe.com
 # Homepage's URL you want to specify in your package
 HOMEPAGE : http://www.john.doe
 
-# An output log filename to keep track of what edits the package
-# building script did, and what warnings it throwed.
-# Can be useful to track some errors.
+# An output log filename to keep track of what edits the package building script
+# did, and what warnings it throwed. Can be useful to track some errors.
 LOGFILE : ../build_package.log
