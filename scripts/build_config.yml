@@ -51,14 +51,18 @@ VERSION : 2.3.7
 # - `bsd`
 # - `mit`
 # - a path leading to your own copyright file. If using your own file
-# Leaving this field empty will put an empty copyright file in your package
+# If left empty, the script will search for files named `COPYING` or `LICENSE`
+# in the `DIRECTORYNAME` folder to use them. If those files are not found, an
+# empty copyright file will be put in your package
 COPYRIGHT : gpl
 
 # Developers' names, email addresses and years of activity on this project.
 # Must be filled this way, and this way only to have a proper copyright
-# file : `years name <email>`. If you are not using a generated copyright file
+# file : `years name <email>`. If left empty, the script will search for a file
+# named `AUTHORS` in the `DIRECTORYNAME` folder to fill the copyright files.
+# If you are not using a generated copyright file
 # (ie. the field `COPYRIGHT` is a path to your own copyright file or left
-# blank), please leave this field empty.
+# blank), you can leave this field empty.
 DEVS :
   - 2012-2014 Jane Doe <jane@doe.com>
   - 2010-2012 2013-2014 Will Smith <will@smith.com>
@@ -125,7 +129,7 @@ BINPACKAGEDESCFILE : test.desc
 # Path to the description file of the library packages. Same as
 # `BINPACKAGEDESCFILE` but for the library packages (in this example, for
 # `libtest_2.3.7_amd64.deb` and `libtest-dev_2.3.7_amd64.deb`
-LIBPACKAGEDCFILE : libtest.desc
+LIBPACKAGEDESCFILE : libtest.desc
 
 # The name of this package's maintainer (it should be yours).
 DEBFULLNAME : John Doe

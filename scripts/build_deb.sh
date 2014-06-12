@@ -140,14 +140,12 @@ for var in $PACKAGETYPE; do
     if [ $var = "l" ]
     then
 	LIBTARBALL="$LIBPACKAGENAME""_$VERSION.orig.tar.gz";
-	tar czf "$LIBTARBALL" .;
-	mv $LIBTARBALL ..
+	tar czf "../$LIBTARBALL" .;
     fi
     if [ $var = "s" ]
     then
 	BINTARBALL="$BINPACKAGENAME""_$VERSION.orig.tar.gz";
-	tar czf "$BINTARBALL" .;
-	mv $BINTARBALL ..
+	tar czf "../$BINTARBALL" .;
     fi
 done;
 
@@ -162,19 +160,22 @@ done;
 #In this part of the script, we check if the variable COPYRIGHT is empty, a file
 #the user wants to include or a predefined value.
  
-if [ $COPYRIGHT = "gpl" ] || [ $COPYRIGHT = "gpl2" ] || [ $COPYRIGHT = "gpl3" ]\
-    || [ $COPYRIGHT = "lgpl" ] || [ $COPYRIGHT = "lgpl2" ] \
-    || [ $COPYRIGHT = "lgpl3" ] || [ $COPYRIGHT = "artistic" ] || \
-    [ $COPYRIGHT = "apache" ] || [ $COPYRIGHT = "bsd" ] || \
-    [ $COPYRIGHT = "mit" ]
+if [ "$COPYRIGHT" = "gpl" ] || [ "$COPYRIGHT" = "gpl2" ] \
+    || [ "$COPYRIGHT" = "gpl3" ] || [ "$COPYRIGHT" = "lgpl" ] \
+    || [ "$COPYRIGHT" = "lgpl2" ] || [ "$COPYRIGHT" = "lgpl3" ] \
+    || [ "$COPYRIGHT" = "artistic" ] || [ "$COPYRIGHT" = "apache" ] \
+    || [ "$COPYRIGHT" = "bsd" ] || [ "$COPYRIGHT" = "mit" ]
 then
     COPYRIGHTTYPE=predefined;
-elif [ -f $COPYRIGHT ]
+elif [ -f "$COPYRIGHT" ]
 then
     COPYRIGHTTYPE=file;
 else
     COPYRIGHTTYPE=empty;
 fi
+
+echo "copyright = $COPYRIGHT";
+echo "copytype = $COPYRIGHTTYPE";
 
 #<a id='lib'>Building the library packages</a>
 #----------------------------------------------

@@ -81,10 +81,10 @@ if ($isvalue!=1) {
     exit 7 if ($cop ne "" && (! (-f "$dirname/$cop")));
     if ($cop eq "") {
 	if (-f "$dirname/COPYING") {
-	    $config =~ s/(COPYRIGHT=\")(\";)/$1$dirname\/COPYING$2/;
+	    $config =~ s/(COPYRIGHT=\")(\";)/$1COPYING$2/;
 	}
 	elsif (-f "$dirname/LICENSE") {
-	    $config =~ s/(COPYRIGHT=\")(\";)/$1$dirname\/LICENSE$2/;
+	    $config =~ s/(COPYRIGHT=\")(\";)/$1LICENSE$2/;
 	}
     }
 }
