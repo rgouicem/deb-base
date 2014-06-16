@@ -148,7 +148,9 @@ order for this makefile to work, you have to fill three fields :
 -    **SCRIPTS_DIR** : Directory were the scripts are (path are relative to
 were the makefile is)
 -    **DOCS_DIR** : Directory where you want the documentation to be.
--    **RESOURCE_DIR** : Directory where the resources are.
+-    **RESOURCE_DIR** : Directory where the resources are (i.e. where the files
+[docco.css](./resources/docco.css) and 
+[languages.json](./resources/languages.json) are located).
 
 Once you've filled everything, you can build your packages. The makefile
 consists of three targets :
@@ -161,7 +163,7 @@ installed).
 
 ###<a name='installdocco'></a>How to install docco
 
-In order to install docco, you need to have Node.js installed. You shoudn't try
+In order to install docco, you need Node.js installed. You shoudn't try
 to install it via apt-get, because it doesn't work. You have to download it 
 [here](http://nodejs.org/download/) and copy the file where they should be 
 copied. Once you've done that, you just have to type the following command line 
