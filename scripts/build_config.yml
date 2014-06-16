@@ -129,7 +129,7 @@ BINPACKAGEDESCFILE : test.desc
 # Path to the description file of the library packages. Same as
 # `BINPACKAGEDESCFILE` but for the library packages (in this example, for
 # `libtest_2.3.7_amd64.deb` and `libtest-dev_2.3.7_amd64.deb`
-LIBPACKAGEDCFILE : libtest.desc
+LIBPACKAGEDESCFILE : libtest.desc
 
 # The name of this package's maintainer (it should be yours).
 DEBFULLNAME : John Doe
