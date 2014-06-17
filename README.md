@@ -58,10 +58,13 @@ Your project also have to respect some rules. It must have a makefile that build
  your program. That makefile must have at least two targets : clean and install.
 The target install is used by `debuild` (the tool that will create the
 package) in order to build your program. The script `build_deb.sh` will produce
-an error if it cannot find your makefile. Also, you cannot suppose anything 
-about environment variables; this script may edit some of them (like CFLAGS).
-To prevent any inconsistency, do not use `-e` option in make and always redefine 
-the environment variables you are using to proper values.
+an error if it cannot find your makefile. There are also two rules about your 
+makefile :
+-    you cannot suppose anything about environment variables; this script may 
+edit some of them (like CFLAGS). To prevent any inconsistency, do not use `-e` 
+option in make and always redefine the environment variables you are using to 
+proper values.
+-    your install rule must install files in `$(DESTDIR)` and not in `/`.
 
 If you meet the requirements, you may proceed to the next step.
 
