@@ -90,6 +90,9 @@ PACKAGEDEPENDS :
   - libsdl2-2.0-0
   - perl-base (> 5.10)
 
+# Option you want to pass for ./configure
+CONFIGUREFLAGS :
+
 # Files to include
 #-----
 
