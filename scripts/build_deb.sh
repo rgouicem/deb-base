@@ -332,6 +332,24 @@ then
     then
 	perl -pi -e 's/(Build-Depends:.+)$/$1, '"$BUILDDEPENDS/" debian/control
     fi
+    
+#Now, we edit the rules file to add custom flags to various commands
+    if [ -n "$CONFIGUREFLAGS" ]
+    then
+	 echo "override_dh_auto_configure:" >> debian/rules
+    	env echo -e "\tdh_auto_configure -- $CONFIGUREFLAGS" >> debian/rules
+    	echo "" >> debian/rules
+    	libdir="-l"
+    	for lib in $LIBNAMES
+    	do
+		l=`echo $lib | grep -E -o ".+/"`
+		libdir="$libdir$l:"
+    	done
+    	libdir=`echo $libdir | perl -ne 'chomp;chop;print $_'`
+    	echo "override_dh_shlibdeps:" >> debian/rules
+    	env echo -e "\tdh_shlibdeps $libdir" >> debian/rules
+    	echo "" >> debian/rules
+    fi
 
 #<a id='libsource'>Creation of the source package</a>
 #----------------------------------------------------
@@ -435,6 +453,25 @@ then
     if [ ! -z "$BUILDDEPENDS" ]
     then
 	perl -pi -e 's/^(Build-Depends:.+)$/$1, '"$BUILDDEPENDS/" debian/control
+    fi
+
+
+#Now, we edit the rules file to add custom flags to various commands
+    if [ -n "$CONFIGUREFLAGS" ]
+    then
+    	echo "override_dh_auto_configure:" >> debian/rules
+    	env echo -e "\tdh_auto_configure -- $CONFIGUREFLAGS" >> debian/rules
+    	echo "" >> debian/rules
+    	libdir="-l"
+    	for lib in $LIBNAMES
+    	do
+		l=`echo $lib | grep -E -o ".+/"`
+		libdir="$libdir$l:"
+    	done
+    	libdir=`echo $libdir | perl -ne 'chomp;chop;print $_'`
+    	echo "override_dh_shlibdeps:" >> debian/rules
+    	env echo -e "\tdh_shlibdeps $libdir" >> debian/rules
+    	echo "" >> debian/rules
     fi
 
 #<a id='binsource'>Creation of the source package</a>
