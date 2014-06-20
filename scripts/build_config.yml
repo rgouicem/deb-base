@@ -25,7 +25,7 @@
 #---
 
 # Name of the directory containing source files. This path must be relative
-# to where the script is run from.
+# to where the script is run from. Do not put a `/` at the end of this path.
 DIRECTORYNAME	: libtest-2.3.7
 
 # Desired name of the package containing binaries (can be left empty if you
