@@ -131,8 +131,11 @@ fi
 
 #We create a log file to keep track of what has been done and we redirect
 #standard output to another log to keep the console clean and readable.
-LOGFILE=../build_deb.log
-FULLLOGFILE=../build_deb_full.log
+cd $DIRECTORYNAME/..
+LOGDIR=`pwd`
+cd $DIRECTORYNAME
+LOGFILE=$LOGDIR/build_deb.log
+FULLLOGFILE=$LOGDIR/build_deb_full.log
 
 :> $LOGFILE
 :> $FULLLOGFILE
@@ -435,6 +438,12 @@ debian/$BINPACKAGENAME.install : $BINARYNAMES." | tee -a $LOGFILE $FULLLOGFILE
     rm -f "$BINTARBALL" "$LIBTARBALL";
     rm -f "$LIBPACKAGENAME""_$VERSION.debian.tar.gz";
     rm -f *.build *.changes;
+    
+    env echo -e "\nYou can now find your debian packages and logs in \
+$LOGDIR. build_deb.log is the same as the previous output, and \
+build_deb_full.log is a complete output of every program called by \
+build_deb.sh (compilation, package building operations, etc...)." \
+| tee -a $LOGFILE $FULLLOGFILE
 
 #If the user wanted to create both type of packages, we can exit the script
 #because we've done that.
