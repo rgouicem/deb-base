@@ -31,21 +31,45 @@
 #---------------------
 
 #Here are the main steps of the script :
-#1. <a href='#conf'>Reading the configuration file</a>
-#2. <a href='#makefile'>Looking for the Makefile</a>
-#3. <a href='#log'>Creating log</a>
-#4. <a href='#tarball'>Creating Tarballs</a>
-#5. <a href='#copyright'>The copyright file</a>
-#6. <a href='#lib'>Building the library packages</a>
+#1. <a href='#opts'>Parsing command line options</a>
+#2. <a href='#conf'>Reading the configuration file</a>
+#3. <a href='#makefile'>Looking for the Makefile</a>
+#4. <a href='#log'>Creating log</a>
+#5. <a href='#tarball'>Creating Tarballs</a>
+#6. <a href='#copyright'>The copyright file</a>
+#7. <a href='#lib'>Building the library packages</a>
 #  1. <a href='#libdeb'>Creation of the Debian files</a>
-#  2. <a href='#libmod'>Modification of the Debial files</a>
+#  2. <a href='#libmod'>Modification of the Debian files</a>
 #  3. <a href='#libsource'>Creation of the source package</a>
 #  4. <a href='#libbuild'> Building the package</a>
-#7. <a href='#bin'>Building the binary package</a>
+#8. <a href='#bin'>Building the binary package</a>
 #  1. <a href='#bindeb'>Creation of the Debian files</a>
-#  2. <a href='#binmod'>Modification of the Debial files</a>
+#  2. <a href='#binmod'>Modification of the Debian files</a>
 #  3. <a href='#binsource'>Creation of the source package</a>
 #  4. <a href='#binbuild'> Building the package</a>
+
+#<a id='opts'>Parsing command line options.</a>
+#----------------------------------------------
+
+leaveunclean=0
+while getopts "lh" opt; do
+    case $opt in
+	h)
+	    env echo -e "Usage: build_deb.sh [OPTIONS]\n\tbuild_config.yml and \
+config_parser.pl must be in the same folder. correct_lintian.pl should also be \
+in the same folder. Make sure build_config.yml is correctly filled.\n"
+	    echo "Options:"
+	    env echo -e "\t-l: do not clean files created during package \
+building."
+	    env echo -e "\t-h: print this help."
+	    exit 0;;
+	l)
+	    leaveunclean=1;;
+	\?)
+	    echo "Invalid option: -$opt" >&2
+	    exit 1;;
+    esac
+done
 
 #<a id='conf'>Reading configuration file.</a>
 #--------------------------------------------
@@ -433,11 +457,14 @@ debian/$BINPACKAGENAME.install : $BINARYNAMES." | tee -a $LOGFILE $FULLLOGFILE
 
 #We now have to remove the debian directory, the tarballs, and some files
 #created by _debuild_.
-    echo "Cleaning directory..." | tee -a $LOGFILE $FULLLOGFILE
-    rm -rf debian/ && cd ..;
-    rm -f "$BINTARBALL" "$LIBTARBALL";
-    rm -f "$LIBPACKAGENAME""_$VERSION.debian.tar.gz";
-    rm -f *.build *.changes;
+    if [ $leaveunclean -eq 0 ]
+    then
+	echo "Cleaning directory..." | tee -a $LOGFILE $FULLLOGFILE
+	rm -rf debian/ && cd ..;
+	rm -f "$BINTARBALL" "$LIBTARBALL";
+	rm -f "$LIBPACKAGENAME""_$VERSION.debian.tar.gz";
+	rm -f *.build *.changes;
+    fi
     
     env echo -e "\nYou can now find your debian packages and logs in \
 $LOGDIR. build_deb.log is the same as the previous output, and \
@@ -570,9 +597,13 @@ debian/$BINPACKAGENAME.install : $BINARYNAMES." | tee -a $LOGFILE $FULLLOGFILE
     echo "Debian packages successfully built." | tee -a $LOGFILE $FULLLOGFILE
 
 #Removing useless files
-    echo "Cleaning directory..." | tee -a $LOGFILE $FULLLOGFILE
-    rm -rf debian/ && cd ..;
-    rm -f "$BINTARBALL" "$LIBTARBALL";
-    rm -f "$BINPACKAGENAME""_$VERSION.debian.tar.gz";
-    rm -f *.build *.changes;
+    if [ $leaveunclean -eq 0 ]
+    then
+	echo "Cleaning directory..." | tee -a $LOGFILE $FULLLOGFILE
+	rm -rf debian/ && cd ..;
+	rm -f "$BINTARBALL" "$LIBTARBALL";
+	rm -f "$BINPACKAGENAME""_$VERSION.debian.tar.gz";
+	rm -f *.build *.changes;
+    fi
 fi
+
