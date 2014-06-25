@@ -1,0 +1,196 @@
+
+/****************************************************************************
+*
+*  Module name        : MarkParser.yacc
+*  Version number     : 2.0
+*  Created date       : Thu Jun  7 15:11:20 ETE 1990
+*  Created by         : Bonnaire Xavier
+*
+*  Subject            : Regles de grammaire pour l'Analyseur/Coprocesseur du
+*                       langage de declaration de reseaux de Petri.
+*                       La grammaire doit etre de type LALR(1).
+*
+*  Major Revision for libPetri : Yann Thierry-Mieg , 09/2002
+*  Revision for FrameKit Environment : Alioune DIAGNE
+*  Revision Date : April, 15th, 1996
+*
+****************************************************************************/
+
+
+%{
+
+#define YYDEBUG 0
+#define _PARSER_SANDRINE_YACC_
+#define _MARS_TYPE_COMPATIBLE_
+#define PRINTF_ALLOWED 1
+
+#include <list>
+#include <string>
+#include <vector>
+
+#include "PNet.h"
+#include "Transitions.h"
+#include "Transition.h"
+#include <cstdio>
+#include <cstring>
+
+using namespace std;
+
+extern int tobserror(const char*)	;
+extern int tobsparse();
+extern int unput_car();
+
+/* Les variables globales */
+
+extern FILE *yyin;
+
+extern char yytext[];
+extern int tobslex(void);
+extern int tobserror (const char*);
+
+/* Variables locales */
+namespace Tobsparse {
+  Transition *t; 
+  bool shouldTreat=false;
+}
+using namespace Tobsparse;
+
+using namespace ParserWrapper;
+%}
+
+%name-prefix "tobs"
+/*------------------------------ Definition des TOKENS -----------------------------*/
+
+%token <entier> TRANS INHIB PRE GUARD ENDTRANS QUOTE
+
+%token <chaine> IDENTT IDENT 
+%token <str> STRING
+
+
+/*------------------------------ Definition de precedences -----------------------*/
+
+
+/*------------------------------ Definition des types de retour des regles --------------------*/
+
+
+%type <arc> Elt
+%type <larc> LArc
+
+
+%union {
+  char	*chaine;
+  string *str;
+  int	entier;
+  Transition * trans;
+  pair<string,string> *arc;
+  list<pair<string,string> > *larc;
+}
+
+
+
+
+/*--------- Definition de la derniere regle reduite dans la grammaire  ------------------------------*/
+
+%start DebutTobs
+
+%%
+
+DebutTobs        :  fulltransdef | fulltransdef DebutTobs ;
+
+
+fulltransdef         : transinit transdef ENDTRANS {
+                          }
+                        ;
+transinit        : TRANS IDENT 
+                       {    
+			if (tobsFilter.empty() || tobsFilter.find($2) != tobsFilter.end() ) {
+			  // cerr << " decided to treat " << $2 <<endl;
+			  shouldTreat = true;
+			  Transition tt (PN->LTrans.size(),-1,"PROP_"+string($2));
+			  t = PN->LTrans.Insert(tt);
+			} else
+			  shouldTreat = false ;
+		      };
+
+transdef              : inhib pre guard ;
+
+inhib :                INHIB LArc 
+                        {
+			  if (shouldTreat)
+			  for (list<pair<string,string> >::iterator it = $2->begin() ; it != $2->end() ; it++) {
+			    Place* p= PN->LPlace.FindName(it->first);
+			    if (p==NULL) 
+			      yyerror(string("Unknown place of name \"" + it->first + "\"while parsing tobs file").c_str());
+			    Arc * pa = PN->LArc.Insert( Arc(PN->LArc.size(),p,t,Place2Trans,it->second,-1,true,false) );
+			    p->AddArc(pa);
+			    t->AddArc(pa);
+			  }
+			  delete $2;
+			}
+                        |  ; 
+
+pre  :                 PRE LArc
+                        {
+			  if (shouldTreat)
+			  for (list<pair<string,string> >::iterator it = $2->begin() ; it != $2->end() ; it++) {
+			    Place* p= PN->LPlace.FindName(it->first);
+			    if (p==NULL) 
+			      yyerror(string("Unknown place of name \"" + it->first + "\"while parsing tobs file").c_str());
+			    Arc * pa = PN->LArc.Insert( Arc(-1,p,t,Place2Trans,it->second,-1,false,false) );
+			    p->AddArc(pa);
+			    t->AddArc(pa);
+			  }
+			  delete $2;
+			}
+                        |  ; 
+
+guard :                GUARD STRING 
+                        {
+			  if (shouldTreat)
+			    t->setGuard(*$2);
+			}
+                        |  ; 
+
+
+
+LArc           :  Elt { 
+                            list<pair<string,string> > *pM = new list<pair<string,string> >() ;
+			    pM->push_front (*$1);
+			    delete $1;
+			    $$ = pM;
+                           }
+                        |  Elt  LArc
+                           { 
+			     $2->push_front(*$1);
+			     delete $1;
+			     $$ = $2;
+			   }
+                        ;
+Elt                     : IDENT STRING   
+                        {  
+			  pair<string,string> * ps = new pair<string,string> ($1,*$2);
+			  $$ = ps;
+			};
+%%
+
+extern FILE * tobsin;
+int yyerror (const char *s) {
+
+	cerr << "ouch !!! " << s << endl;
+	cerr << "While parsing obs transition:" ;
+	int n = ftell(tobsin);
+	int numc = n;
+	rewind(tobsin);
+	char line[1024];
+	char line2[1024];
+	while (  n > ftell(tobsin)  ) {
+	          strcpy(line2,line);
+		  numc = n - ftell(tobsin);
+		  fgets(line,1024,tobsin);
+		}
+	cerr << line2 <<endl;
+	cerr << "Around character " << numc <<endl;
+	return 1;
+}
+
+

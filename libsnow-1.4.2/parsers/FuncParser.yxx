@@ -1,0 +1,263 @@
+/****************************************************************************
+*
+*  Module name        : FuncParser.yacc
+*  Version number     : 2.0
+*  Created date       : Thu Jun  7 15:11:20 ETE 1990
+*  Created by         : Bonnaire Xavier
+*
+*  Subject            : Regles de grammaire pour l'Analyseur/Coprocesseur du
+*                       langage de declaration de reseaux de Petri.
+*                       La grammaire doit etre de type LALR(1).
+*
+*  Major Revision for libPetri : Yann Thierry-Mieg , 09/2002
+*  Revision for FrameKit Environment : Alioune DIAGNE
+*  Revision Date : April, 15th, 1996
+*
+****************************************************************************/
+
+
+%{
+
+#define YYDEBUG 0
+#define _PARSER_SANDRINE_YACC_
+#define _MARS_TYPE_COMPATIBLE_
+#define PRINTF_ALLOWED 1
+
+#include <list>
+#include <string>
+#include <vector>
+
+#include "PNet.h"
+#include "CFunc.h"
+#include "CFuncTerm.h"
+#include "CFuncElt.h"
+#include "Domain.h"
+#include "FuncParser.h"
+#include <cstdio>
+using namespace std;
+
+extern int funcerror(const char*) ;
+extern int funcparse();
+extern int unput_car();
+
+/* Les variables globales */
+
+//extern FILE *yyin;
+
+//extern PNet  *PN;
+//extern CFunc* result_func;	/* utilise pour mettre le resultat de l'analyse */
+//extern Domain *pDom; /* domain of the place considered */
+extern char yytext[];
+extern int funclex(void);
+extern int funcerror (const char*);
+
+/* Variables locales */
+namespace FuncParser {
+list<PNClass *>::iterator curclass;
+}
+using namespace FuncParser;
+using namespace ParserWrapper;
+%}
+
+%name-prefix "func"
+
+/*------------------------------ Definition des TOKENS -----------------------------*/
+
+%token <entier> ALL  
+%token <entier> VIRG 
+%token <entier> POINT INC MULT  PLUS MOINS
+%token <entier> INF SUP DEC
+
+%token <chaine> IDENT NBR_SS 
+
+
+
+/*------------------------------ Definition de precedences -----------------------*/
+
+
+/*------------------------------ Definition des types de retour des regles --------------------*/
+
+
+%type <func> CFunc DebutCFunc
+%type <functerm> CFuncTerm 
+%type <lelts> SuiteElements Elements
+%type <elements> Elt
+%type <entier> Nombre
+%type <chaine> IdentElt
+
+
+%union {
+  char	*chaine;
+  int	entier;
+  class CFunc * func;
+  class CFuncTerm * functerm;
+  list<CFuncElt > * lelts;
+  CFuncElt * elements;
+}
+
+
+
+
+/*--------- Definition de la derniere regle reduite dans la grammaire  ------------------------------*/
+
+%start DebutCFunc
+
+%%
+
+DebutCFunc               : CFunc {
+                          result_func = $1;
+                        }
+                        ;
+
+CFunc			: CFuncTerm MOINS CFunc
+				{
+			      $3->Lst().front().Mult() = -$3->Lst().front().Mult();
+			      $3->Insert (*$1);
+			      delete $1;
+			      $$ = $3;
+				}
+			| CFuncTerm PLUS CFunc
+                            {   
+			      $3->Insert (*$1);
+			      delete $1;
+			      $$ = $3;
+			    }
+                        | CFuncTerm 
+                           {
+			     CFunc *m = new CFunc ();
+			     m->Insert(*$1);
+			     delete $1;
+			     $$ = m;
+			   }	
+                        ;			
+
+CFuncTerm                    : Nombre MULT INF Elements SUP 
+                           {
+			     CFuncTerm * m = new CFuncTerm(pDom, *$4,$1);
+			     delete $4;
+			     $$ = m;
+			   }	
+                         | INF Elements SUP
+                           {
+		       	     CFuncTerm * m = new CFuncTerm(pDom, *$2);
+			     delete $2;
+			     $$ = m;
+			   }	
+                         | Nombre 
+                           {
+			     if (pDom != NULL) { yyerrok; } /*null color domain*/
+			     CFuncTerm * m = new CFuncTerm($1);
+			     $$ =m;
+			   }	
+                        ;
+
+
+Elements                : InitialList SuiteElements
+                           {
+			     if (curclass != pDom->Elts().end()) { yyerrok; }
+			     $$ = $2; 	
+			   }
+                        ;
+
+InitialList             : /*empty*/     {
+              			     curclass = pDom->Elts().begin() ;
+				     if (!pDom->Size() || curclass == pDom->Elts().end()) { yyerror("Domain of place is given as uncolored, but colored tokens are used in color function of an arc leading to or from it.");}
+			   }
+                        ;
+
+
+SuiteElements           :  Elt { 
+                                list<CFuncElt > *pM = new list<CFuncElt >() ;
+				pM->push_front (*$1);
+				delete $1;
+				$$ = pM;
+                           }
+                        |  Elt VIRG SuiteElements 
+                           { 
+			     $3->push_front(*$1);
+			     delete $1;
+			     $$ = $3;
+			   }
+                        ;
+Elt                     : IdentElt   
+                        {  
+			   
+			   Element *e = (*curclass)->Find($1);
+			   // test for variable
+			   if (!e) { 
+				Variable * var = PN->LVar.FindName($1);
+				if (!var || var->PClass() != *curclass) yyerror("Unknown variable or bad variable domain while parsing color function "); 
+				CFuncElt * fe = new CFuncElt(var);
+				curclass++;
+				$$ = fe;
+			   } else { 
+			     // else plain element
+			     
+			     vector<Element> * v = new vector<Element> () ;
+			     v->push_back(*e);
+			     curclass++;
+			     CFuncElt * fe = new CFuncElt(*v);
+			     $$ = fe ;
+			   }
+			}
+                        | IDENT POINT ALL
+                            {
+				/* place is uncolored ; no diffusion allowed !!! */
+				if (!*curclass) { cerr << "Diffusion from null domain place !!" <<endl; yyerror("Diffusion from null domain place !!");}
+			     PNClass * pC = PN->LClasse.FindName($1);
+			     if (!pC) { cerr << "Unknown class "<< $1; yyerror("Unknown variable or bad variable domain while parsing color function "); }
+			     if (pC->Name() != (*curclass)->Name() && pC->Parent()->Name() != (*curclass)->Name()) {cerr<<("Domain of token incompatible with place");yyerror("Unknown variable or bad variable domain while parsing color function ");}
+			     vector<Element> * v = new vector<Element> (pC->Elts());
+			     curclass++;
+			     CFuncElt * fe = new CFuncElt(*v);
+			     $$  = fe ;
+			    }
+                        | IDENT INC Nombre 
+                           {
+				Variable * var = PN->LVar.FindName($1);
+				if (!var || var->PClass() != *curclass) yyerror("Unknown variable or bad variable domain while parsing color function "); 
+				CFuncElt * fe = new CFuncElt(var,$3);
+				curclass++;
+				$$ = fe;
+			   }
+                        | IDENT DEC Nombre 
+                           {
+				Variable * var = PN->LVar.FindName($1);
+				if (!var || var->PClass() != *curclass) yyerror("Unknown variable or bad variable domain while parsing color function "); 
+				CFuncElt * fe = new CFuncElt(var,-$3);
+				curclass++;
+				$$ = fe;
+			   }
+                        ;
+
+IdentElt                : IDENT { $$ =$1; }
+                        | NBR_SS {  $$ = $1;}
+                        ;
+
+Nombre                  : NBR_SS {
+			  int i;
+			  if (sscanf($1,"%d",&i) ==1)
+			    $$ = i;
+			  else { yyerrok ; }
+                        }
+                        | /*empty*/ {
+                           $$ = 1;
+                        }
+                        ;
+			
+%%
+
+extern FILE * funcin;
+int yyerror (const char *s) {
+
+	cerr << "ouch !!! " << s << endl;
+	cerr << "While parsing color function:" ;
+	int n = ftell(funcin);
+	rewind(funcin);
+	char line[1024];
+	fgets(line,1024,funcin);
+	cerr << line ;
+	cerr << "Around character " << n <<endl;
+	exit(1);
+	return 1;
+}

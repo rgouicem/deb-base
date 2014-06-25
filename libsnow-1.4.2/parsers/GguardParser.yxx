@@ -1,0 +1,432 @@
+ 
+/****************************************************************************
+*
+*  Module name        : GguardParser.yacc
+*  Version number     : 2.0
+*  Created date       : Thu Jun  7 15:11:20 ETE 1990
+*  Created by         : Bonnaire Xavier
+*
+*  Subject            : Regles de grammaire pour l'Analyseur/Coprocesseur du
+*                       langage de declaration de reseaux de Petri (Guardes uniquement).
+*                       La grammaire doit etre de type LALR(1).
+*
+*  Major Revision for libPetri : Yann Thierry-Mieg , 09/2002
+*  Revision for FrameKit Environment : Alioune DIAGNE
+*  Revision Date : April, 15th, 1996
+*
+****************************************************************************/
+
+%{
+
+#define YYDEBUG 0
+#define _PARSER_SANDRINE_YACC_
+#define _MARS_TYPE_COMPATIBLE_
+#define PRINTF_ALLOWED 1
+
+#include <list>
+#include <string>
+#include <vector>
+
+#include "PNet.h"
+#include "PNetIO.h"
+#include "Guard.h"
+#include <cstdio>
+#include <algorithm>
+
+using namespace std;
+
+extern int gguarderror(const char*)	;
+extern int gguardparse();
+extern int unput_car();
+
+/* Les variables globales */
+
+//extern FILE *yyin;
+
+//extern PNet  *PN;
+//extern Guard* result_guard;	/* utilise pour mettre le resultat de l'analyse */
+extern char yytext[];
+extern int gguardlex(void);
+extern int gguarderror (const char*);
+
+typedef pair<Variable*,int> varsucc;
+
+using namespace ParserWrapper;
+%}
+
+
+/*------------------------------ Definition des TOKENS -----------------------------*/
+
+%token <entier> IN INC DEC D
+%token <entier>  NOT AND OR 
+%token <entier> VIRG CRO_O CRO_F PAR_O PAR_F 
+%token <entier>  ESCL CARET
+%token <entier> ACC_O ACC_F
+%token <entier> EGAL INF SUP INF_E SUP_E N_EGAL T_TRUE T_FALSE
+
+%token <chaine> IDENT NBR_SS  
+
+
+/*------------------------------ Definition des types de retour des regles --------------------*/
+
+%name-prefix "gguard"
+
+%type <guard> Predic 
+%type <guard> Predicat
+
+%type <chaine> Valeur
+
+%type <entier> OpRel
+%type <variable> Variable Sucvar
+
+%type <elements> ExplicitDomain SuiteExplicitDomain
+
+%left NOT OR AND
+
+
+%union {
+  char	*chaine;
+  int	entier;
+  class Guard * guard;
+  pair<class Variable*,int> *variable;
+  list<string> * elements;
+}
+
+
+
+
+/*--------- Definition de la derniere regle reduite dans la grammaire  ------------------------------*/
+
+%start Predic
+
+%%
+
+Predic			: CRO_O Predicat CRO_F 
+                            {   
+			     // cerr << *$2 << endl ;
+			      $2->ApplyNot();
+			      result_guard = $2;
+			      $$ = $2;  
+			    }
+			| Predicat { 
+			             // cerr << *$1 << endl ;
+				     result_guard = $1;
+				     $1->ApplyNot();
+			             $$ = $1;
+				       /* Accept syntax without square brackets [guard] , i forget them all the time  */
+				   }
+                        ;			
+
+Predicat		: T_TRUE
+                              {  $$ = new Guard("TRUE");}
+			| T_FALSE
+                              { $$ = new Guard("FALSE");}
+			| NOT Predicat 
+				{ $$ = new Guard("NOT", $2); }
+			| PAR_O Predicat PAR_F
+				{ $$ = $2; }
+			| Predicat AND Predicat
+				{  
+				  $$ = new Guard( "AND", $1, $3  ); 
+				} 
+			| Predicat OR Predicat 
+                                { $$ = new Guard( "OR", $1, $3  );}
+			| Variable EGAL Valeur 
+				{ 
+			          Guard * gRet ;
+				  
+				  Element * pe = $1->first->PClass()->Find($3);
+				  // cerr << "found a Valeur  :" << *pe << endl ;	
+				  
+				  if (!pe) {
+				    Variable *v = PN->LVar.FindName(tname + $3);
+				    if (!v) { cerr << "Error parsing expression; Comparing variable "<< *$1->first<<" to unknown "<< tname << $3 <<endl ;yyerrok;}
+				    // cerr << "found a Variable :" << *v << endl ;
+ 				    gRet  = (*$1->first<*v)?new Guard ($1->first,"=",v,$1->second,0):new Guard (v,"=",$1->first,0,$1->second);
+				  }
+				  else  gRet  = new Guard ($1->first,pe,$1->second);
+				  delete $1;
+				  // cerr << " Read  :"<< *gRet << endl;
+				  $$ = gRet;
+			   	}
+			| Variable EGAL Sucvar 
+				{ 
+				   Guard * gRet  = (*$1->first<*$3->first)?new Guard ($1->first,"=",$3->first,$1->second,$3->second):new Guard ($3->first,"=",$1->first,$3->second,$1->second);
+
+				  delete $1;
+				  delete $3;
+				  // cerr << " Read  :"<< *gRet << endl;
+				  $$ = gRet;
+			   	}
+			| Variable N_EGAL Sucvar 
+				{ 
+				   Guard * gRet  = (*$1->first<*$3->first)?new Guard("NOT",new Guard ($1->first,"=",$3->first,$1->second,$3->second)):new Guard("NOT",new Guard ($3->first,"=",$1->first,$3->second,$1->second));
+
+				  delete $1;
+				  delete $3;
+				  // cerr << " Read  :"<< *gRet << endl;
+				  $$ = gRet;
+			   	}
+			| Variable N_EGAL Valeur 
+				{ 
+			          Guard * gRet ;
+				  
+				  Element * pe = $1->first->PClass()->Find($3);
+				  // cerr << "found a Valeur  :" << *pe << endl ;	
+				  
+				  if (!pe) {
+				    Variable *v = PN->LVar.FindName(tname+$3);
+				    if (!v) { cerr << "Error parsing expression; Comparing variable "<< *$1->first<<" to unknown "<<$3 <<endl ;yyerrok;}
+				    // cerr << "found a Variable :" << *v << endl ;
+				    gRet  = (*$1->first<*v)?new Guard("NOT",new Guard ($1->first,"=",v,$1->second,0)):new Guard("NOT",new Guard (v,"=",$1->first,0,$1->second));
+				  }
+				  else  gRet  = new Guard ("NOT",new Guard ($1->first,pe,$1->second));
+				  delete $1;
+				  // cerr << " Read  :"<< *gRet << endl;
+				  $$ = gRet;
+			   	}
+			| Variable OpRel Valeur 
+				{ 
+
+				    if ( $1->second ) {
+					cerr << " Comparison <, <= , > , >= is forbidden on ordered classe \n";
+					yyerror ("FATAL PARSE ERROR");
+				    }
+
+			          Guard * gRet ;
+				  
+				  Element * pe = $1->first->PClass()->Find($3);
+				  // cerr << "found a Valeur  :" << *pe << endl ;	
+				  
+				  if (!pe) {
+				    Variable *v = PN->LVar.FindName(tname+$3);
+				    if (!v) { cerr << "Error parsing expression; Comparing variable "<< *$1->first<<" to unknown "<<$3 <<endl ;yyerrok;}
+				    // cerr << "found a Variable :" << *v << endl ;
+				    vector<Element>  elts = $1->first->PClass()->Elts();
+				    
+				    Variable * v1, * v2;
+				    Guard *gtmp;
+				    unsigned int classSize = elts.size();
+				    unsigned int i;
+				    list<Element>  list1 , list2 ; 
+					 
+
+				    if ( $1->first->PClass() != v->PClass() ) { 
+				      cerr << "Error parsing expression; Comparing variable "<< *$1->first<<" to variable "<<*v <<". Classes of compared variables do not match!"<< endl ;
+				      yyerrok; }
+				    if ( $2 == INF || $2 == INF_E  ) {
+				      v1 = $1->first;
+				      v2 = v;
+				    } else { /* > SUP or SUP_E >= */
+				      v1 = v;
+				      v2 = $1->first;
+				    }
+				    /* treat extreme cases */
+				    if (classSize < 2) {
+				      gRet = new Guard ("FALSE");
+				    } else {
+				      // cerr << "Comparison between "<< *v1 <<"and" << *v2<<endl;
+				      
+
+				      /* initialize recursion */
+				      /* consider v1 < v2 */
+				      
+				      // copy ( elts.begin() , elts.end() , ostream_iterator<Element>(cerr, ","));cerr <<endl ;
+					 
+				      for (i=0;i< elts.size();i++) 
+					list1.push_back(elts[i]);
+
+				      // cerr <<"copy ok" << endl ;
+				      
+				      /* list1 = { e_1 .. e_n-1} and list2 = { e_n } */
+				      {
+					list2.push_front(list1.back());
+					list1.pop_back();
+					vector <Element> vect1 (list1.begin(), list1.end()), 
+					                 vect2 (list2.begin(), list2.end()) ;
+					gRet = new Guard("AND",new Guard(v1,vect1),new Guard(v2,vect2));
+		//			cerr << "gRet =" << *gRet <<endl;
+				      }
+
+				     // for ( i=1 ; i <  classSize-1 ; i++  ) 
+					while (1){
+					list2.push_front(list1.back());
+					list1.pop_back();
+					if (list1.size() == 0) break;
+					vector <Element> vect1 (list1.begin(), list1.end()), vect2(list2.begin(),++list2.begin()) ;
+					
+					gtmp = new Guard("AND",new Guard(v1,vect1),new Guard(v2,vect2));
+					gRet = new Guard("OR",gtmp,gRet);
+			//		cerr << "gRet =" << *gRet <<endl;
+				      }
+				    
+				    } // comparing variables 
+				    if ( $2 == SUP_E || $2 == INF_E ) {
+				      gRet = new Guard("OR",new Guard(v1,"=",v2),gRet);
+				    }
+				  }
+				  else  { /* comparison X < val */
+				    vector<Element> tmp;
+				   
+				    string opstr = ($2 == SUP_E)?">=":
+						( ($2 == INF_E)?"<=":
+						( ($2 == INF)?"<":
+                                                ( ($2 == SUP)?">":"" ) ) );
+				 //   cerr << "SUP_E, $2 : " << SUP_E <<","<< $2 << endl;
+				    tmp =  $1->first->PClass()->getRange(opstr,pe) ;
+				    
+				    gRet  = new Guard ($1->first,tmp);
+				   				    
+				  }
+				//  cerr << " Read  :"<< *gRet << endl;
+				  $$ = gRet;
+			   	}
+                        | Variable IN ExplicitDomain
+				{
+				  Element * pe;
+				  vector<Element> ve($3->size());
+				  list<string>::iterator it;
+				  unsigned int i;
+				  // copy($3->begin(), $3->end(), ostream_iterator<string>(cerr, ","));cerr <<endl ;
+
+				  for ( it = $3->begin(), i=0; i < $3->size() ; it++, i++) {
+				    pe = $1->first->PClass()->Find(*it);
+				    if (pe) { ve[i] = *pe ; }
+				    else { cerr << "Element "<< *it << " is not a member of class" <<  *($1->first->PClass()) << endl ; yyerrok; }
+				  } 
+				   // copy(ve.begin(), ve.end(), ostream_iterator<Element>(cerr, ","));
+				  Guard * gRet  = new Guard ($1->first , ve) ; 
+				  /* Destroy intermediate list */
+				  delete $3 ;
+				  //  cerr << " Read  :"<< *gRet << endl;
+				  $$ = gRet;
+				}
+			| D PAR_O Variable PAR_F EGAL IDENT
+				{
+				  vector<Element> ve;
+				  vector<Element>::iterator it;
+				  PNClass * cc = PN->LClasse.FindName($6);
+
+				  if ($3->second) {
+					cerr << "Illegal predicate d(X) using successor.\n";
+					yyerror("FATAL!");
+				  }
+
+				  if (!cc) { 
+					cerr << "Unknown class " << $6 << " referenced in guard of transition " << tname <<endl;
+					yyerror("Fatal parse error ! ");
+				  } 
+				  if ($3->first->PClass() != cc 
+					&& ( find($3->first->PClass()->SubClasses().begin(),$3->first->PClass()->SubClasses().end(),cc) == $3->first->PClass()->SubClasses().end()) )
+					{
+					  cerr << "Variable domain predicate of guard of transition " << tname << " has mismatch between variable type and domain mentionned" <<endl;
+					  yyerror("FATAL PARSE ERROR !");
+					}
+		
+				  for ( it = cc->Elts().begin(); it !=  cc->Elts().end() ; it++) {
+				    ve.push_back(*it);
+				  } 
+				   // copy(ve.begin(), ve.end(), ostream_iterator<Element>(cerr, ","));
+				  Guard * gRet  = new Guard ($3->first , ve) ; 
+				  //  cerr << " Read  :"<< *gRet << endl;
+				  $$ = gRet;
+                                }	
+			| D PAR_O Variable PAR_F EGAL NBR_SS
+				{
+				  vector<Element> ve;
+				  vector<Element>::iterator it;
+				  list<PNClass*>::iterator iit=$3->first->PClass()->SubClasses().begin() ;
+				  advance(iit,atoi($6)-1);
+				  if (iit == $3->first->PClass()->SubClasses().end()) {
+					cerr << "Guard predicate references unknown subclass number " << $6 << ".\n";
+					yyerror("Fatal parse error ! ");
+				  }
+				  PNClass * cc = *iit;
+
+				  if ($3->second) {
+					cerr << "Illegal predicate d(X) using successor.\n";
+					yyerror("FATAL!");
+				  }
+
+				  		
+				  for ( it = cc->Elts().begin(); it !=  cc->Elts().end() ; it++) {
+				    ve.push_back(*it);
+				  } 
+				   // copy(ve.begin(), ve.end(), ostream_iterator<Element>(cerr, ","));
+				  Guard * gRet  = new Guard ($3->first , ve) ; 
+				  //  cerr << " Read  :"<< *gRet << endl;
+				  $$ = gRet;
+                                }	
+			;
+
+Variable		: IDENT 
+				{ Variable *v = PN->LVar.FindName(tname+$1);
+       			 	  if (!v) { cerr <<" Unknown variable named:" << $1 << endl; yyerrok; }
+				  // cerr << "found a Variable :" << *v << endl ;
+				  varsucc * p = new varsucc(v,0);
+				  $$ = p;	
+				}
+			  | Sucvar {$$ =$1; } 
+			 ;
+Sucvar 			: ESCL IDENT 
+				{ Variable *v = PN->LVar.FindName(tname+$2);
+       			 	  if (!v) { cerr <<" Unknown variable named:" << $2 << endl; yyerrok; }
+				  // cerr << "found a Variable :" << *v << endl ;
+				  varsucc * p = new varsucc(v,1);
+				  $$ = p;	
+				}
+			  | CARET IDENT
+				{ Variable *v = PN->LVar.FindName(tname+$2);
+       			 	  if (!v) { cerr <<" Unknown variable named:" << $2 << endl; yyerrok; }
+				  // cerr << "found a Variable :" << *v << endl ;
+				  varsucc * p = new varsucc(v,-1);
+				  $$ = p;	
+				}
+			;
+
+Valeur 			: IDENT { $$ = $1; }
+			| NBR_SS { $$ = $1; }
+			;
+
+ExplicitDomain		: ACC_O IDENT SuiteExplicitDomain ACC_F 
+			{
+			 $3->push_front($2);
+			 $$ = $3 ;
+			}
+			;
+
+
+SuiteExplicitDomain	: /* empty */ { 
+					list<string> * pL = new list<string> ;
+				        $$ = pL ;
+				       }
+			| VIRG IDENT SuiteExplicitDomain 
+				{
+				  $3->push_front(string($2));
+				  $$ = $3 ;
+				}
+			;
+
+
+OpRel			: INF 	{ $$ = INF; }
+			| SUP 	{ $$ = SUP; }
+			| INF_E { $$ = INF_E; }
+			| SUP_E { $$ = SUP_E; }
+                        ;
+			
+%%
+
+extern FILE * gguardin;
+int yyerror (const char *s) {
+
+	cerr << "ouch !!! " << s << endl;
+	cerr << "While parsing guard:" ;
+	int n = ftell(gguardin);
+	rewind(gguardin);
+	char line[1024];
+	fgets(line,1024,gguardin);
+	cerr << line ;
+	cerr << "Around character " << n <<endl;
+	return 1;
+}
+

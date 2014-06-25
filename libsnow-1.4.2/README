@@ -1,0 +1,64 @@
+libPetri : A C++ library for manipulating AMI-Nets and Well-Formed Nets
+
+
+This library is designed to manipulate Petri nets ; It is composed of the following public classes,
+each class is declared in a interfaces/xxx.h file and implemented in sources/xxx.cpp.
+
+
+Main Petri Net elements :
+
+PNet : A class describing a Petri net, it is itself composed of :
+
+     * Domains: A list of color domains (C1xC2..xCn) see class Domain
+     * PNClasses: A list of color classes, C1 = {e1,..en} see class PNClass
+     * Variables: A list of Variables or formal parameters see class Variable
+     * Places: A list of color places  see class Place
+     * Transitions: A list of transitions see class Transition
+     * Arcs: A list of arcs see class Arc
+
+These classes offer basic facilties like inserting in a sorted manner, finding an element, exports to different formats, consistency checks etc... Since the structure is heavily cross-linked using pointers, the use of lists (<list>) ensures that object positions in mem are not modified when inserting or removing elements. The class PNet allows public access to these classes through LDom,LClasse,LPlace,LTrans, and LArc, member attributes of class PNet.
+
+The actual elements of the net are as follows :
+
+ * PNClass: A vector of Element, also bears a name and type (  Integer,  Char,  Parametre,  Intervalle,  Enumere,  Statique ) links to Parent class if it is a static subclass ( PNClass* Parent() ) and to its subclasses if it has any ( list<PNClass *> SubClasses () )
+ * Domain: A list of PNClass*, a domain has a name,id ... 
+ * Transition: A transition bears links to input arcs ( ArcsIn ) output Arcs ( ArcsOut ) and a Guard 
+ * Place: A place bears links to input arcs ( ArcsIn ) output Arcs ( ArcsOut ) and a Marking
+ * Arc: An Arc bears a link to a Place and a Transition and a direction (enum Direction{Trans2Place,Place2Trans} ) as well as a color function ( CFunc )
+ * Variable: A variable is a formal parameter, and has a name, id and link to the PNClass it belongs to.
+
+These main elements in turn bear color functions, markings, guards defined in :
+
+ * CFunc: A color function for an arc , it is a list of  CFuncTerm :ie: 2*<X,{a,b,c}>,<Y,{a,c}>
+        *CFuncTerm: a term in a color function expression, it has a multiplicity and a list of elements CFuncElt composing its tuple. ie: 2*<X,{a,b,c}>
+	*CfuncElt: an element of a tuple, either a vector of Element of a class or a Variable (with possible successor) i.e. : X or {a,b,c}
+ * Marking: The marking of a place, expressed as a list of tokens (Mark): ie: 2*<{x,y},{a,b,c}>,<{x},{a,c}>
+	*Mark: A token of a Marking, expressed as a list of (vector of elements)  with a multiplicity, ie: 2*<{x,y},{a,b,c}>
+ *Guard: A predicate guarding a Transition: expressed as a binary tree representing an expression, each node bearing a predicate of the form: X in {e1,..en} or X=Y or X!=Y with eventually use of successor operator
+
+Element and CalcSubClasses: Throughout the library we use an Element to describe an element of a given PNClass, an element bears a name and id. Since vector<Element> are commonly manipulated, the namespace calcSubClasses:: defined in CalcSubClasses.h defines a some primitives for pretty printing, intersecting, merging etc... vector of elements.
+
+PNetIO: Input and Output: this file contains primitives for interaction with the Framekit Environment, reading Isabelle Mounier's matrix format and Aestethic information (object positions etc...) from Macao. It also sets up the Cami translation chain with calls to FkClChangerFonction that allow to decode Cami instructions. It relies on the LineParser and ParserCAMI classes for its treatment and error handling. (Note: Retrospectively, this part should have been written in lex/yacc really but it is not in place for the handling of the Declaration part of a Net (Classes,Domains and Variables are "hand parsed") )
+
+Input from different syntactic forms for actual color functions (arcs,markings,guards) is handled by parsers written in bison/flex that may be found in the parsers subdir and has its own makefile. The current version handles three different grammars/lexers, FuncParser/FuncLexer, GuardParser/GuardLexer, and MarkParser/MarkLexer. The calls to these hybrid C/C++ parsers are completely packaged by ParserWrapper, that gives us "nice" prototypes to interact with the barbaric flex/bison code  ie:  
+
+ namespace ParserWrapper {
+  Guard * ParseGuard( const string &,PNet *pPN=NULL) ;  
+  Marking * ParseMarking (const string &,Domain *,PNet *pPN = NULL ) ;
+  CFunc * ParseFunc (const string & str,Domain *dom,PNet *pPN = NULL ) ;
+
+  void setModel (PNet *);
+}
+
+FKServVersions.h : Contains version and history information, not allways up to date :)
+	   
+		  
+/***********************************************************************************************************/
+
+See Header files for more details on each class.
+
+Most of these classes offer the primitives:
+** GetAssymetry: returns the permissible permutations of color instances that do not modify the behavior of this element of the net
+** ExportToGSPN,ExportToCAMI : export primitives for GreatSPN and Cami Format
+
+   		

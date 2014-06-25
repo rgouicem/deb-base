@@ -1,0 +1,278 @@
+/****************************************************************************
+*
+*  Module name        : GfuncParser.yacc
+*  Version number     : 2.0
+*  Created date       : Thu Jun  7 15:11:20 ETE 1990
+*  Created by         : ytm
+*
+*  Subject            : gspn syntax for arc color functions
+*                       
+*
+*  Revision Date : April, 15th, 1996
+*
+****************************************************************************/
+
+
+%{
+
+#define YYDEBUG 0
+#define _PARSER_SANDRINE_YACC_
+#define _MARS_TYPE_COMPATIBLE_
+#define PRINTF_ALLOWED 1
+
+#include <list>
+#include <string>
+#include <vector>
+
+#include "PNet.h"
+#include "CFunc.h"
+#include "CFuncTerm.h"
+#include "CFuncElt.h"
+#include "Domain.h"
+#include "GfuncParser.h"
+#include <cstdio>
+using namespace std;
+
+extern int gfuncerror(const char*) ;
+extern int gfuncparse();
+extern int unput_car();
+
+/* Les variables globales */
+
+//extern FILE *yyin;
+
+//extern PNet  *PN;
+//extern CFunc* result_func;	/* utilise pour mettre le resultat de l'analyse */
+//extern Domain *pDom; /* domain of the place considered */
+extern char yytext[];
+extern int gfunclex(void);
+extern int gfuncerror (const char*);
+
+/* Variables locales */
+namespace GFuncParser {
+list<PNClass *>::iterator curclass;
+}
+using namespace GFuncParser;
+using namespace ParserWrapper;
+%}
+
+%name-prefix "gfunc"
+/*------------------------------ Definition des TOKENS -----------------------------*/
+
+%token <entier> NUM
+%token <entier> COMMA PLUS MINUS
+%token <entier> S ESCL
+%token <entier> GT LT OBRCK CBRCK
+
+%token <chaine> STRING
+
+
+
+/*------------------------------ Definition de precedences -----------------------*/
+
+
+/*------------------------------ Definition des types de retour des regles --------------------*/
+
+
+%type <func> CFunc DebutCFunc shortfunc
+%type <functerm> CFuncTerm 
+%type <lelts> SuiteElements Elements
+%type <elements> Elt
+%type <entier> coefficient
+
+%union {
+  char	*chaine;
+  int	entier;
+  class CFunc * func;
+  class CFuncTerm * functerm;
+  list<CFuncElt > * lelts;
+  CFuncElt * elements;
+}
+
+
+
+
+/*--------- Definition de la derniere regle reduite dans la grammaire  ------------------------------*/
+
+%start DebutCFunc
+
+%%
+
+DebutCFunc               : CFunc {
+                          result_func = $1;
+                        }
+			| shortfunc {
+			  result_func = $1;
+			}
+                        ;
+
+CFunc			: CFunc MINUS CFuncTerm
+				{
+				  $3->Mult() *= -1;
+				  $1->Insert (*$3);
+				  delete $3;
+				  $$ = $1;
+				}
+			| CFunc PLUS CFuncTerm
+                            {   
+			      $1->Insert (*$3);
+			      delete $3;
+			      $$ = $1;
+			    }
+                        | CFuncTerm 
+                           {
+			     CFunc *m = new CFunc ();
+			     m->Insert(*$1);
+			     delete $1;
+			     $$ = m;
+			   }	
+                        ;			
+
+CFuncTerm                    : coefficient LT Elements GT 
+                           {
+			     CFuncTerm * m = new CFuncTerm(pDom, *$3,$1);
+			     delete $3;
+			     $$ = m;
+			   }	
+			| NUM 
+			  {
+			     if (pDom != NULL) { yyerrok; } /*null color domain*/
+			     CFuncTerm * m = new CFuncTerm($1);
+			     $$ =m;
+	
+			  }
+                        ;
+
+
+Elements                : InitialList SuiteElements
+                           {
+			     if (curclass != pDom->Elts().end()) { yyerror("Expected more elements in color function  tuple, tuple does not correspond to place domain"); }
+			     $$ = $2; 	
+			   }
+                        ;
+
+InitialList             : /*empty*/     {
+				     // gfuncdebug = 1;
+              			     curclass = pDom->Elts().begin() ;
+			   }
+                        ;
+
+
+SuiteElements           :  Elt { 
+                                list<CFuncElt > *pM = new list<CFuncElt >() ;
+				pM->push_front (*$1);
+				delete $1;
+				$$ = pM;
+                           }
+                        |  Elt COMMA SuiteElements 
+                           { 
+			     $3->push_front(*$1);
+			     delete $1;
+			     $$ = $3;
+			   }
+                        ;
+Elt                     : STRING
+                        {  
+			   
+			   Element *e = (*curclass)->Find($1);
+			   // test for variable
+			   if (!e) { 
+				Variable * var = PN->LVar.FindName(tname+$1);
+				if (!var) {
+				  var = PN->LVar.Insert(Variable(PN->LVar.size(),tname+$1,*curclass));
+				} else if (var->PClass() != *curclass) {
+				  char buff[1024];
+				  sprintf(buff,"Variable : %s is used in incompatible types while parsing transition %s.",$1,tname.c_str()); 
+				  yyerror(buff);
+				}
+				CFuncElt * fe = new CFuncElt(var);
+				curclass++;
+				$$ = fe;
+			   } else { 
+			     // else plain element
+			     
+			     vector<Element> * v = new vector<Element> () ;
+			     v->push_back(*e);
+			     curclass++;
+			     CFuncElt * fe = new CFuncElt(*v);
+			     $$ = fe ;
+			   }
+			}
+                        | S STRING
+                            {
+				/* place is uncolored ; no diffusion allowed !!! */
+				if (!*curclass) { cerr << "Diffusion from null domain place !!" <<endl; yyerror("Diffusion from null domain place !!");}
+				PNClass * pC = PN->LClasse.FindName($2);
+				if (!pC) { cerr << "Unknown class "<< $2; yyerrok; }
+				if (pC->Name() != (*curclass)->Name() && pC->Parent()->Name() != (*curclass)->Name()) {cerr<<("Domain of token incompatible with place");yyerrok;}
+				vector<Element> * v = new vector<Element> (pC->Elts());
+				curclass++;
+				CFuncElt * fe = new CFuncElt(*v);
+				$$  = fe ;
+			    }
+                        | S 
+                            {
+			      vector<Element> * v = new vector<Element> ((*curclass)->Elts());
+	 		      curclass++;
+			      CFuncElt * fe = new CFuncElt(*v);
+			      $$  = fe ;
+			    }
+			| coefficient  ESCL STRING 
+                           {
+				Variable * var = PN->LVar.FindName(tname+$3);
+				if (!var) {
+				  var = PN->LVar.Insert(Variable(PN->LVar.size(),tname+$3,*curclass));
+				} else if (var->PClass() != *curclass) {
+				  char buff[1024];
+				  sprintf(buff,"Variable : %s is used in incompatible types while parsing transition %s.",$3,tname.c_str()); 
+				  yyerror(buff);
+				}
+				CFuncElt * fe = new CFuncElt(var,$1);
+				curclass++;
+				$$ = fe;
+			   }
+			| S MINUS STRING 
+			  {
+			    yyerror("Sorry, S - x predicate are not yet supported by this tool. \n Error is severity FATAL, could not recover, sorry.\n"); 
+			    exit(1);
+			  }
+                        ;
+
+
+shortfunc               : coefficient S 
+                        {
+			  curclass = pDom->Elts().begin() ;
+			  CFunc *m = new CFunc();
+
+			  list<CFuncElt> le;
+			  for ( ; curclass != pDom->Elts().end() ; curclass++) {
+			       le.push_back(CFuncElt((*curclass)->Elts()));
+			  }
+			  CFuncTerm mk (pDom,le,$1);
+			  m->Insert(mk);
+			  $$ = m ;
+
+			}
+;
+
+coefficient 		: NUM { $$ = $1; }
+			| /*empty*/ { $$ = 1; }	
+;
+			
+%%
+
+
+extern FILE * gfuncin;
+int yyerror (const char *s) {
+
+	cerr << "ouch !!! " << s << endl;
+	cerr << "While parsing color function:" ;
+	int n = ftell(gfuncin);
+	rewind(gfuncin);
+	char line[1024];
+	fgets(line,1024,gfuncin);
+	cerr << line ;
+	cerr << "Around character " << n <<endl;
+	return 1;
+}
+

@@ -1,0 +1,225 @@
+ 
+/****************************************************************************
+*
+*  Module name        : MarkParser.yacc
+*  Version number     : 2.0
+*  Created date       : Thu Jun  7 15:11:20 ETE 1990
+*  Created by         : Bonnaire Xavier
+*
+*  Subject            : Regles de grammaire pour l'Analyseur/Coprocesseur du
+*                       langage de declaration de reseaux de Petri.
+*                       La grammaire doit etre de type LALR(1).
+*
+*  Major Revision for libPetri : Yann Thierry-Mieg , 09/2002
+*  Revision for FrameKit Environment : Alioune DIAGNE
+*  Revision Date : April, 15th, 1996
+*
+****************************************************************************/
+
+
+%{
+
+#define YYDEBUG 0
+#define _PARSER_SANDRINE_YACC_
+#define _MARS_TYPE_COMPATIBLE_
+#define PRINTF_ALLOWED 1
+
+#include <list>
+#include <string>
+#include <vector>
+
+#include "PNet.h"
+#include "Mark.h"
+#include "Marking.h"
+#include "Domain.h"
+#include "MarkParser.h"
+#include <cstdio>
+using namespace std;
+
+extern int markerror(const char*)	;
+extern int markparse();
+extern int unput_car();
+
+/* Les variables globales */
+
+extern FILE *yyin;
+
+//extern PNet  *PN;
+//extern Marking* result_mark;	/* utilise pour mettre le resultat de l'analyse */
+//extern Domain *pDom; /* domain of the place considered */
+extern char yytext[];
+extern int marklex(void);
+extern int markerror (const char*);
+
+/* Variables locales */
+namespace markerparse {
+list<PNClass *>::iterator curclass;
+}
+using namespace markerparse;
+
+using namespace ParserWrapper;
+%}
+
+%name-prefix "mark"
+
+/*------------------------------ Definition des TOKENS -----------------------------*/
+
+%token <entier> ALL  
+%token <entier> VIRG  PLUS MOINS
+%token <entier> POINT INC MULT  
+%token <entier> INF SUP
+
+%token <chaine> IDENT NBR_SS 
+
+
+
+/*------------------------------ Definition de precedences -----------------------*/
+
+
+/*------------------------------ Definition des types de retour des regles --------------------*/
+
+
+%type <marking> Marking DebutMark
+%type <mark> Mark 
+%type <lelts> SuiteElements Elements
+%type <elements> Elt
+%type <entier> Nombre
+%type <chaine> IdentElt
+
+
+%union {
+  char	*chaine;
+  int	entier;
+  class Marking * marking;
+  class Mark * mark;
+  list<vector<Element> > * lelts;
+  vector<Element> * elements;
+}
+
+
+
+
+/*--------- Definition de la derniere regle reduite dans la grammaire  ------------------------------*/
+
+%start DebutMark
+
+%%
+
+DebutMark               : Marking {
+                          result_mark = $1;
+                        }
+                        ;
+
+Marking			: Marking VIRG Mark
+                            {   
+			      $1->InsertBack (*$3);
+			      delete $3;
+			      $$ = $1;
+			    }
+                        | Mark 
+                           {
+			     Marking *m = new Marking ();
+			     m->Insert(*$1);
+			     delete $1;
+			     $$ = m;
+			   }	
+                        ;			
+
+Mark                    : Nombre MULT INF Elements SUP 
+                           {
+			     Mark * m = new Mark(pDom, *$4,$1);
+			     delete $4;
+			     $$ = m;
+			   }	
+                         | INF Elements SUP
+                           {
+		       	     Mark * m = new Mark(pDom, *$2);
+			     delete $2;
+			     $$ = m;
+			   }	
+                         | Nombre 
+                           {
+			     if (pDom->Size() > 0) { yyerror("Marking given as integer value but domain of place is not null (black & white);"); } /*null color domain*/
+			     Mark * m = new Mark($1);
+			     $$ =m;
+			   }	
+                        ;
+
+
+Elements                : InitialList SuiteElements
+                           {
+			     if (curclass != pDom->Elts().end()) { yyerror("Expected more elements in marking tuple, mark does not correspond to domain"); }
+			     $$ = $2; 	
+			   }
+                        ;
+
+InitialList             : /*empty*/     {
+              			     curclass = pDom->Elts().begin() ;
+				     if (!pDom->Size() || curclass == pDom->Elts().end()) { yyerror("Domain of place is given as uncolored, but colored tokens are used in marking definition.");}
+			   }
+                        ;
+
+
+SuiteElements           :  Elt { 
+                                list<vector<Element> > *pM = new list<vector<Element> >() ;
+				pM->push_front (*$1);
+				delete $1;
+				$$ = pM;
+                           }
+                        |  SuiteElements VIRG Elt
+                           { 
+			     /*$1->push_front(*$3);*/
+			     $1->push_back(*$3);
+			     delete $3;
+			     $$ = $1;
+			   }
+                        ;
+Elt                     : IdentElt   
+                        {  
+			   vector<Element> * v = new vector<Element> () ;
+			   
+			   Element *e = (*curclass)->Find($1);
+			   if (!e) { cerr<<("Element is not a part of current class"); }
+			   v->push_back(*e);
+			   curclass++;
+			   $$ = v ;
+			}
+                        | IDENT POINT ALL
+                            {
+			     PNClass * pC = PN->LClasse.FindName($1);
+			 //    if (!pC) { cerr << "Unknown class "<< $1; yyerrok; }
+			 //    if (pC != *curclass && pC->Parent() != *curclass) {yyerrok;}
+			     vector<Element> * v = new vector<Element> (pC->Elts());
+			     curclass++;
+			     $$  =v ;
+			    }
+                        ;
+
+IdentElt                : IDENT { $$ =$1;}
+                        | NBR_SS {  $$ = $1;}
+                        ;
+
+Nombre                  : NBR_SS {
+			  int i;
+			  if (sscanf($1,"%d",&i) ==1)
+			    $$ = i;
+			  else { cerr<<("Couldn't parse an integral value where expected;") ; }
+                        }
+                        ;
+			
+%%
+
+extern FILE * markin;
+int yyerror (const char *s) {
+
+	cerr << "ouch !!! " << s << endl;
+	cerr << "While parsing marking:" ;
+	rewind(markin);
+	char line[1024];
+	fgets(line,1024,markin);
+	cerr << line ;
+	exit(1);
+	return 1;
+}
+
+

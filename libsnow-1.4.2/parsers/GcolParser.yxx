@@ -1,0 +1,227 @@
+/****************************************************************************
+*
+*  Module name        : GcolParser.yacc
+*  Version number     : beta
+*  Created date       : 11/2003
+*  Created by         : rossano (?maybe?)
+*
+*  Subject            : Lexer for WN gspn syntax
+*
+*  Major Revision for libPetri : Yann Thierry-Mieg , 11/2003
+*
+****************************************************************************/
+
+
+%{
+
+#define YYDEBUG 0
+#define _PARSER_SANDRINE_YACC_
+#define _MARS_TYPE_COMPATIBLE_
+#define PRINTF_ALLOWED 1
+
+#include <list>
+#include <string>
+#include <vector>
+
+#include "PNet.h"
+#include "PNClass.h"
+#include "Domain.h"
+#include "ParserWrapper.h"
+#include "GcolParser.h"
+#include <cstdio>
+using namespace std;
+
+extern int gcolerror(const char*)	;
+extern int gcolparse();
+extern int unput_car();
+
+/* Les variables globales */
+
+// extern FILE *yyin;
+
+// extern PNet  *PN; /* the context */
+// extern PNClass* result_gcol;	/* to put the result */
+
+extern char yytext[];
+extern int gcollex(void);
+
+
+/* Variables locales */
+namespace GcolParser {
+	// none for the time being
+ //list<PNClass *>::iterator curclass;
+}
+using namespace GcolParser;
+using namespace ParserWrapper;
+%}
+
+%name-prefix "gcol"
+/*------------------------------ Definition des TOKENS -----------------------------*/
+
+// %token <entier> ALL  PLUS MOINS
+// %token <entier> VIRG  PLUS MOINS
+// %token <entier> POINT INC MULT  PLUS MOINS
+// %token <entier> INF SUP INC DEC
+
+%token <entier> NUM
+%token <entier> OBRCS MINUS CBRCS COMMA O US 
+%token <chaine> STRING 
+
+
+
+/*------------------------------ Definition de precedences -----------------------*/
+
+
+/*------------------------------ Definition des types de retour des regles --------------------*/
+
+%type <pclass> Gcol DebutGcol statics 
+%type <lstr> namelist
+%type <entier> prefix
+
+
+
+%union {
+  char	*chaine;
+  int	entier;
+  class PNClass *pclass;
+  vector<string> * lstr;
+}
+
+
+
+
+/*--------- Definition de la derniere regle reduite dans la grammaire  ------------------------------*/
+
+%start DebutGcol
+
+%%
+
+DebutGcol               :
+                        Gcol {
+                          result_gcol = $1;
+                        }
+                        ;
+
+Gcol			: prefix namelist
+                            {
+			      result_gcol->type = Enumere ;
+			      vector<string>::iterator it;
+			      int i = 0;
+			      for (it=$2->begin(); it!= $2->end() ; it++) {
+				PNClass * pC = PN->LClasse.FindName(*it);
+				/* if static subclass declaration already parsed */
+				if (pC != NULL) {
+				  for (vector<Element>::iterator it = pC->Elts().begin(); it != pC->Elts().end() ; it++) {
+				    it->setid(i++);
+				    result_gcol->AddElt(*it); 
+				  }
+				} else {
+				  /* create a new static subclass (empty for now) */
+				  pC  = PN->LClasse.Insert(*(new PNClass ( -1, Statique , *it)));
+				} 
+				  
+				pC->parent = result_gcol;
+				result_gcol->addSub(pC);
+			      }
+			      $$ = result_gcol;
+			    }                            
+			| statics
+                            {
+			      $$ = $1;
+			    }
+;
+
+
+statics	   : 	   OBRCS namelist CBRCS	   
+                            {
+			      result_gcol->type=Statique;
+			      for (vector<string>::iterator it=$2->begin(); it != $2->end() ; it++)
+				for (vector<string>::iterator jt= it + 1; jt != $2->end() ; jt++)
+				  if (*it == *jt) 
+				    {
+				      cerr << "Same element ::" << *it << ":: is present more than once in declaration static subclass  " << bufname << endl;
+				      yyerror("");
+				    }
+			      vector<string>::iterator it;
+			      int i;
+			      
+			      if (result_gcol->parent) 
+				i = result_gcol->parent->elts.size() ;
+			      else 
+				i = 0;
+			      for (it= $2->begin(); it != $2->end() ; it++,i++) {
+				result_gcol->AddElt(Element(i,*it));
+				if (result_gcol->parent) 
+				  result_gcol->parent->AddElt(Element(i,*it));
+			      }
+			      $$ = result_gcol;
+			    }
+	  | STRING OBRCS NUM  MINUS NUM CBRCS	   
+                            {
+			      if ($5 < $3) {
+				cerr << "Min bound is superior to max bound in enumerated declaration of static subclass " << bufname << endl;
+				yyerror("");
+			      }
+			      result_gcol->type=Statique;
+			      
+			      result_gcol->prefix = $1 ;
+			      int i,j;
+			      char buff[64];
+			      if (result_gcol->parent) 
+				i = result_gcol->parent->elts.size() ;
+			      else 
+				i = 0;
+			      for (j=$3;j<=$5;i++,j++) {
+				sprintf(buff,"%s%d",$1,j);
+				result_gcol->AddElt(Element(i,buff));
+				if (result_gcol->parent) 
+				  result_gcol->parent->AddElt(Element(i,buff));
+			      }
+			      
+			      $$ = result_gcol;
+			    }
+;
+
+
+namelist   : namelist COMMA STRING	   
+                            {
+			      $1->push_back($3);
+			      $$ = $1;
+			    }
+            | STRING
+                            {
+			      vector<string> * l = new vector<string>() ;
+			      l->push_back($1);
+			      $$ = l;
+			    }
+;
+
+
+prefix	   : O	   
+                            {
+			      result_gcol->setOrdered(true);
+			    }
+           | US 	   
+                            {
+			      result_gcol->setOrdered(false);
+			    }
+;
+
+
+
+%%
+
+extern FILE * gcolin;
+int yyerror (const char *s) {
+
+	cerr << "ouch !!! " << s << endl;
+	cerr << "While parsing color definition:" << endl ;
+	int n = ftell(gcolin);
+	rewind(gcolin);
+	char line[1024];
+	fgets(line,1024,gcolin);
+	cerr << line ;
+	cerr << "Around character " << n <<endl;
+	return 1;
+}
+

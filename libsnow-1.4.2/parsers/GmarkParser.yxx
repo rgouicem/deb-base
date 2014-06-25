@@ -1,0 +1,246 @@
+ 
+/****************************************************************************
+*
+*  Module name        : MarkParser.yacc
+*  Version number     : 2.0
+*  Created date       : Thu Jun  7 15:11:20 ETE 1990
+*  Created by         : Bonnaire Xavier
+*
+*  Subject            : Regles de grammaire pour l'Analyseur/Coprocesseur du
+*                       langage de declaration de reseaux de Petri.
+*                       La grammaire doit etre de type LALR(1).
+*
+*  Major Revision for libPetri : Yann Thierry-Mieg , 09/2002
+*  Revision for FrameKit Environment : Alioune DIAGNE
+*  Revision Date : April, 15th, 1996
+*
+****************************************************************************/
+
+
+%{
+
+#define YYDEBUG 0
+#define _PARSER_SANDRINE_YACC_
+#define _MARS_TYPE_COMPATIBLE_
+#define PRINTF_ALLOWED 1
+
+#include <list>
+#include <string>
+#include <vector>
+
+#include "PNet.h"
+#include "Mark.h"
+#include "Marking.h"
+#include "Domain.h"
+#include "GmarkParser.h"
+#include <cstdio>
+using namespace std;
+
+extern int gmarkerror(const char*)	;
+extern int gmarkparse();
+extern int unput_car();
+
+/* Les variables globales */
+
+extern FILE *yyin;
+
+//extern PNet  *PN;
+//extern Marking* result_mark;	/* utilise pour mettre le resultat de l'analyse */
+//extern Domain *pDom; /* domain of the place considered */
+extern char yytext[];
+extern int gmarklex(void);
+extern int gmarkerror (const char*);
+
+/* Variables locales */
+namespace gmarker {
+list<PNClass *>::iterator curclass;
+ }
+using namespace gmarker;
+
+using namespace ParserWrapper;
+%}
+
+%name-prefix "gmark"
+/*------------------------------ Definition des TOKENS -----------------------------*/
+
+%token <entier> NUM
+%token <entier> COMMA  PLUS MINUS
+%token <entier> S 
+%token <entier> GT LT
+
+%token <chaine> STRING
+
+
+
+/*------------------------------ Definition de precedences -----------------------*/
+
+
+/*------------------------------ Definition des types de retour des regles --------------------*/
+
+
+%type <marking> Marking DebutMark shortmark
+%type <mark> Mark 
+%type <lelts> SuiteElements Elements
+%type <elements> Elt
+%type <entier> coefficient
+
+
+
+%union {
+  char	*chaine;
+  int	entier;
+  class Marking * marking;
+  class Mark * mark;
+  list<vector<Element> > * lelts;
+  vector<Element> * elements;
+}
+
+
+
+
+/*--------- Definition de la derniere regle reduite dans la grammaire  ------------------------------*/
+
+%start DebutMark
+
+%%
+
+DebutMark               : Marking {
+                          result_mark = $1;
+                        }
+			| shortmark {
+			  result_mark = $1;
+			}
+                        ;
+
+Marking			: Marking PLUS Mark
+                            {   
+			      $1->Insert (*$3);
+			      delete $3;
+			      $$ = $1;
+			    }
+                        | Marking MINUS Mark 
+                           {
+			     $3->Mult() *= -1 ;
+			     $1->Insert (*$3);
+			     delete $3;
+			     $$ = $1;
+			   }
+			| Mark
+			  {
+			     Marking *m = new Marking ();
+			     m->Insert(*$1);
+			     delete $1;
+			     $$ = m;	
+
+			   }	
+                        ;			
+
+Mark                    : coefficient LT Elements GT 
+                           {
+			     Mark * m = new Mark(pDom, *$3,$1);
+			     delete $3;
+			     $$ = m;
+			   }	
+/* gspn forces to write <2> ? in B/W ?? */
+/*********
+                         | coefficient 
+                           {
+			     if (pDom->Size() > 0) { cerr<<("Marking given as integer value but domain of place is not null (black & white);"); } //null color domain
+			     Mark * m = new Mark($1);
+			     $$ =m;
+			   }
+*************/	
+                        ;
+
+
+Elements                : InitialList SuiteElements
+                           {
+			     if (curclass != pDom->Elts().end()) { yyerror("Expected more elements in marking tuple, mark does not correspond to domain"); }
+			     $$ = $2; 	
+			   }
+                        ;
+
+InitialList             : /*empty*/     {
+              			     curclass = pDom->Elts().begin() ;
+			   }
+                        ;
+
+
+SuiteElements           :  Elt { 
+                                list<vector<Element> > *pM = new list<vector<Element> >() ;
+				pM->push_front (*$1);
+				delete $1;
+				$$ = pM;
+                           }
+                        |  Elt COMMA SuiteElements 
+                           { 
+			     $3->push_front(*$1);
+			     delete $1;
+			     $$ = $3;
+			   }
+                        ;
+Elt                     : STRING
+                        {  
+			   vector<Element> * v = new vector<Element> () ;
+			   
+			   Element *e = (*curclass)->Find($1);
+			   if (!e) { cerr<<("Element is not a part of current class"); }
+			   v->push_back(*e);
+			   curclass++;
+			   $$ = v ;
+			}
+                        | S STRING
+                            {
+			     PNClass * pC = PN->LClasse.FindName($2);
+			 //    if (!pC) { cerr << "Unknown class "<< $1; yyerrok; }
+			 //    if (pC != *curclass && pC->Parent() != *curclass) {yyerrok;}
+			     vector<Element> * v = new vector<Element> (pC->Elts());
+			     curclass++;
+			     $$  =v ;
+			    }
+			| S 
+			    {
+			     vector<Element> * v = new vector<Element> ((*curclass)->Elts());
+			     curclass++;
+			     $$  =v ;
+			    }
+			| S NUM
+			    {
+				yyerror("Initial marking definitions using a static subclass index are not yet supported by this tool. Mail yann.thierry-mieg@lip6.fr if this is a feature you would like to see supported in new versions.\n");
+			    }
+                        ;
+
+coefficient 		: NUM { $$ = $1; }
+			| /*empty*/ { $$ = 1; }	
+;
+
+shortmark		: coefficient S 
+			{
+			     curclass = pDom->Elts().begin() ;					
+			     Marking *m  = new Marking ();
+			     
+			     list<vector<Element> > le ;
+			     for ( ; curclass != pDom->Elts().end() ; curclass++) {
+			       le.push_back((*curclass)->Elts());
+			     }
+			     Mark mk(pDom,le,$1);
+			     m->Insert(mk);
+			     $$ = m;
+			}
+;			
+%%
+
+extern FILE * gmarkin;
+int yyerror (const char *s) {
+
+	cerr << "ouch !!! " << s << endl;
+	cerr << "While parsing marking:"<< endl  ;
+	int n = ftell(gmarkin);
+	rewind(gmarkin);
+	char line[1024];
+	fgets(line,1024,gmarkin);
+	cerr << line ;
+	cerr << "Around character " << n <<endl;
+	return 1;
+}
+
