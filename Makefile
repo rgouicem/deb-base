@@ -18,4 +18,4 @@ build_docs: $(SCRIPTS_DIR)build_deb.sh $(SCRIPTS_DIR)build_config.yml $(SCRIPTS_
 clean_docs:
 	rm -rf $(DOCS_DIR)
 
-.PHONY: all build_package build_docs clean_docs
+.PHONY: all build_package build_package_unclean build_docs clean_docs
