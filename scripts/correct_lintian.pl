@@ -56,11 +56,11 @@ close COPYRIGHT;
 # the user can keep track of what this script has done. A timestamp is written
 # at the beginning of the file, along with a little explanation of what this
 # file is.
-my$do_log = open LOG, ">", "$ENV{LOGFILE}";
-if($do_log) {
-    my$date = scalar localtime(time);
-    print LOG "correct_lintian.pl log file.\nThis log lists edits made by the script and warnings/errors that happened during debian package building. You may want to correct them and launch a new build.\n\nTimestamp: $date\n\n";
-}
+#my$do_log = open LOG, ">", "$ENV{LOGFILE}";
+#if($do_log) {
+#    my$date = scalar localtime(time);
+#    print LOG "correct_lintian.pl log file.\nThis log lists edits made by the script and warnings/errors that happened during debian package building. You may want to correct them and launch a new build.\n\nTimestamp: $date\n\n";
+#}
 
 # File edition
 #-------------
@@ -109,40 +109,40 @@ $copyright =~ s/(Copyright:) <.+?> <.+?>\n\s+? <.+?> <.+?>\n/$1 $devs/;
 if ($lintianLog =~ /package-needs-versioned-debhelper-build-depends (.*?)[\s]/){
     my$dh_version = $1;
     $control =~ s/debhelper (\(.*?\))/debhelper \(>= $dh_version\)/;
-    print LOG "build depends debhelper version changed from $1 to (>= $dh_version)\n" if $do_log;
+    print "build depends debhelper version changed from $1 to (>= $dh_version)\n";
 }
 # Getting _standards_ version right
 if ($lintianLog =~ /out-of-date-standards-version \d\.\d\.\d \(current is (\d\.\d\.\d)\)/){
     my$std_version = $1;
     $control =~ s/Standards-Version: (\d\.\d\.\d)/Standards-Version: $std_version/;
-    print LOG "standards version changed from $1 to $std_version\n" if $do_log;
+    print "standards version changed from $1 to $std_version\n";
 }
 if ($lintianLog =~ /ancient-standards-version \d\.\d\.\d \(current is (\d\.\d\.\d)\)/){
     my$std_version = $1;
     $control =~ s/Standards-Version: (\d\.\d\.\d)/Standards-Version: $std_version/;
-    print LOG "standards version changed from $1 to $std_version\n" if $do_log;
+    print "standards version changed from $1 to $std_version\n";
 }
 # Adding missing generated dependencies
 if ( $lintianLog =~ /debhelper-but-no-misc-depends/ ) {
     $control =~ s/(Package: (.*?-dev)[\s]+Section:.*?[\s]+Architecture:.*?[\s]+Depends:.*?)([\s]+Desc)/$1, \${misc:Depends}$3/s;
-    print LOG "added missing dependencies for $2 package\n" if $do_log;
+    print "added missing dependencies for $2 package\n";
 }
 # Adding the project's homepage if given in the environment variable `HOMEPAGE`
 if ( $lintianLog =~ /bad-homepage/ ) {
     if ( $ENV{HOMEPAGE} ne "" ) {
 	$control =~ s/(Homepage: )<.*?>/$1$ENV{HOMEPAGE}/g;
-	print LOG "updated homepage to $ENV{HOMEPAGE}\n" if $do_log;
+	print "updated homepage to $ENV{HOMEPAGE}\n";
     }
     else {
-	print LOG "missing homepage in configuration file\n" if $do_log;
+	print "missing homepage in configuration file\n";
     }
 }
 # Throw a warning if some binaries do not have a man page
 if ( $lintianLog =~ /binary-without-manpage/ ) {
-    print LOG "WARNING: Each binary in /usr/bin, /usr/sbin, /bin, /sbin or\n
+    print "WARNING: Each binary in /usr/bin, /usr/sbin, /bin, /sbin or\n
 \t/usr/games should have a manual page.If the man pages are provided by\n
 \tanother package on which this package depends, we may not be able to\n
-\tdetermine that man pages are available. In this case, ignore this warning\n" if $do_log;
+\tdetermine that man pages are available. In this case, ignore this warning\n";
 }
 
 
@@ -163,9 +163,9 @@ print COPYRIGHT $copyright;
 close CONTROL;
 close COPYRIGHT;
 close BUILDLOG;
-close LOG if $do_log;
+#close LOG if $do_log;
 
 # And a little message to let the user know that the script is done and where
 # to find the log if there is one.
 print "Configuration files edited !\n";
-print "You can find what has been changed in $ENV{LOGFILE}\n" if $do_log;
+#print "You can find what has been changed in $ENV{LOGFILE}\n" if $do_log;
