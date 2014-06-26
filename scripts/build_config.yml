@@ -90,6 +90,19 @@ PACKAGEDEPENDS :
   - libsdl2-2.0-0
   - perl-base (> 5.10)
 
+# List all actions that you want to perform before starting the build procedure
+#. If you change an environment variable, or a system configuration, you 
+# <strong>have</strong> to restore the system state like it was before in the
+# `AFTERBUILD` section of this configuration file.
+BEFOREBUILD :
+  - sudo update-alternatives --set yacc /usr/bin/byacc
+
+# List all actions that you want to perform after the building procedure is 
+# over. You <strong>have</strong> to restore what you have changed in 
+# `BEFOREBUILD` that could affect other programs.
+AFTERBUILD :
+  - sudo update-alternatives --set yacc /usr/bin/bison.yacc
+
 # Option you want to pass for ./configure
 CONFIGUREFLAGS :
 

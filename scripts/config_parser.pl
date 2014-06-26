@@ -12,6 +12,15 @@ my$config = <IN>;
 
 # remove comments
 $config =~ s/#.*\n//g;
+# rearrange BEFOREBUILD and AFTERBUILD lists
+$config =~ /BEFOREBUILD\s*?:\s*?(.*?)\n\n/s;
+my$res = $1;
+$res =~ s/([^\s])\n/$1;\n/sg;
+$config =~ s/(BEFOREBUILD\s*?:\s*?)(.*?)(\n\n)/$1$res$3/s;
+$config =~ /AFTERBUILD\s*?:\s*?(.*?)\n\n/s;
+my$res = $1;
+$res =~ s/([^\s])\n/$1;\n/sg;
+$config =~ s/(AFTERBUILD\s*?:\s*?)(.*?)(\n\n)/$1$res$3/s;
 # rearrange lists
 $config =~ s/\n\s*-//g;
 $config =~ s/\s*- / /g;
@@ -30,7 +39,7 @@ $config =~ s/^\n(.+)$/$1/sg;
 
 #Adding comas in BUILDEPEND and PACKAGEDEPENDS
 $config =~ /BUILDDEPENDS=\"(.*?)\";/;
-my$res=$1;
+$res=$1;
 $res=~s/ (?=[^\d\(\s])/, /g, $1;
 $config =~ s/BUILDDEPENDS=\"(.*?)\";/BUILDDEPENDS=\"$res\";/;
 
