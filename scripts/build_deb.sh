@@ -51,13 +51,23 @@
 #<a id='opts'>Parsing command line options.</a>
 #----------------------------------------------
 
+#In this part of the script, we are parsing the arguments given to the script.
+#Here is the list of the options you can use when you call this script : 
+#- -h : If you want an help to be displayed.
+#- -l : Use that if you don't want the script to remove temporary files. Those 
+#files includes : 
+#  - The tarballs (i.e. the archives that contains your source code)
+#  - The debian directory, that is created during the build of the package. It
+#contains the configuration files used by the program that will create the 
+#package
+
 leaveunclean=0
 while getopts "lh" opt; do
     case $opt in
 	h)
-	    env echo -e "Usage: build_deb.sh [OPTIONS]\n\tbuild_config.yml and \
-config_parser.pl must be in the same folder. correct_lintian.pl should also be \
-in the same folder. Make sure build_config.yml is correctly filled.\n"
+	    env echo -e "Usage: `basename $0` [OPTIONS]\n\tbuild_config.yml \
+and config_parser.pl must be in the same folder. correct_lintian.pl should \
+also be in the same folder. Make sure build_config.yml is correctly filled.\n"
 	    echo "Options:"
 	    env echo -e "\t-l: do not clean files created during package \
 building."
@@ -139,6 +149,7 @@ esac
 #Here, we are checking the presence of a Makefile.
 #If there is no Makefile, the script quits immediatly.
 #Debian tools need that in order to build your program.
+
 CURR=`pwd`;
 cd $DIRECTORYNAME;
 DIRECTORYNAME=`pwd`;
