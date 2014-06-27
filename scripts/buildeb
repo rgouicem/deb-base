@@ -93,7 +93,7 @@ done
 
 #So, firstly, we check if there's a configuration file. If there isn't
 #any, we exit the script.
-conffile=shift
+conffile=$1
 if [ ! -f "$conffile" ] 
 then
     echo "build_config.yml is missing" >&2
