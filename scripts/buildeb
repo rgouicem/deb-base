@@ -8,9 +8,9 @@
 #binary files. The other one is the library package. When you want to create 
 #a library package, two packages are actually created. Here is a quick
 #description of those : 
-#1. &lt;package\_name&gt;\_&lt;version&gt;.deb : This is the package containing
+#1. `<package_name>_<version>.deb` : This is the package containing
 #the libraries.
-#2. &lt;package\_name&gt;-dev\_&lt;version&gt; : This package will contain the
+#2. `<package_name>-dev_<version>.deb` : This package will contain the
 #header files.
 
 #In order for this script to work correctly, some scripts and files are needed. 
@@ -21,12 +21,24 @@
 #read it, and fill it with correct informations.</span>
 #2. config_parser.pl : This perl script parses the configuration file (see 
 #above), and produces an output that look something like "export NAME=VALUE;".
+#If you've not obtained this files via the Debian Package, then this file must
+#be in the same directory where you will launch the script.
 #3. correct_lintian.pl : Perl script that correct some of the mistakes that
 #lintian (command that check the conformity of packages) detects. Although this
 #script is not necessary to produce a package, it's highly recommended
 #to have it, in order to build a package that complies with the Debian Policy.
+#If you've not obtained this files via the Debian Package, then this file must
+#be in the same directory where you will launch the script.
 #4. Your project needs a makefile if you want to build a binary package. Debian
 #tools need one to create binaries, in order to include them into the package.
+
+#However, if you've obtained this script via the Debian package, then you should
+#know that the configuration file you need to fill is located in `/usr/share`.
+#You should copy it where your source code is. This is not an obligation though,
+#since you can specify where this file is located when you launch this script.
+#If you want to know more about the options you can specify in the command line
+#of this script, please read the <a href='#opts'>`Parsing command line options`
+#</a> paragraph
 
 #How this script works
 #---------------------
@@ -38,44 +50,71 @@
 #4. <a href='#log'>Creating log</a>
 #5. <a href='#tarball'>Creating Tarballs</a>
 #6. <a href='#copyright'>The copyright file</a>
-#7. <a href='#lib'>Building the library packages</a>
+#7. <a href='#lib'>Building the packages</a>
 #  1. <a href='#libdeb'>Creation of the Debian files</a>
 #  2. <a href='#libmod'>Modification of the Debian files</a>
 #  3. <a href='#libsource'>Creation of the source package</a>
 #  4. <a href='#libbuild'> Building the package</a>
-#8. <a href='#bin'>Building the binary package</a>
-#  1. <a href='#bindeb'>Creation of the Debian files</a>
-#  2. <a href='#binmod'>Modification of the Debian files</a>
-#  3. <a href='#binsource'>Creation of the source package</a>
-#  4. <a href='#binbuild'> Building the package</a>
 
 #<a id='opts'>Parsing command line options.</a>
 #----------------------------------------------
 
 #In this part of the script, we are parsing the arguments given to the script.
 #Here is the list of the options you can use when you call this script : 
-#- -h : If you want an help to be displayed.
-#- -l : Use that if you don't want the script to remove temporary files. Those 
-#files includes : 
+#- `-h` : If you want an help to be displayed.
+#- `-l` : Use that if you don't want the script to remove temporary files. 
+#Those files includes : 
 #  - The tarballs (i.e. the archives that contains your source code)
 #  - The debian directory, that is created during the build of the package. It
 #contains the configuration files used by the program which will create the 
 #package
+#- `-c <configuration_file>` : This option allows you to indicate the path
+#leading to your configuration file. The path must be relative to where you
+#launch this script. This is not required. If you don't use this option,
+#then we will assume that the configuration file is in the current directory
+#(i.e. the directory where you launch this script.). We will also assume that 
+#its name is `build_config.yml`. If it's not, then you should use this option.
+#- `-d <makefile_directory>` : This option allows you to indicate in which
+#directory the makefile of your project is located. You can omit this option, if
+#the makefile is in the directory where you'll launch this script.
 
 leaveunclean=0
-while getopts "lh" opt; do
+while getopts "c:d:lh" opt; do
     case $opt in
 	h)
-	    env echo -e "Usage: `basename $0` [OPTIONS]\n\tbuild_config.yml \
-and config_parser.pl must be in the same folder. correct_lintian.pl should \
-also be in the same folder. Make sure build_config.yml is correctly filled.\n"
+	    env echo -e "Usage: `basename $0` [OPTIONS]";
+	    echo "If you've not obtained this script via the debian package \
+then the files" 
+	    echo "config_parser.pl and correct_lintian.pl must be in the same \
+directory where"
+	    echo "you'll execute this script."
+	    echo "Make sure build_config.yml is correctly filled."
 	    echo "Options:"
-	    env echo -e "\t-l: do not clean files created during package \
-building."
+	    env echo -e "\t-l: Don't clean files created during the build of \
+the packages."
 	    env echo -e "\t-h: print this help."
+	    env echo -e "\t-c <config_file> : Allows you to indicate where your\
+ configuration file"
+	    env echo -e "\t                   is located. If you omit this\
+ option we will assume"
+	    env echo -e "\t                   that it's located in the \
+directory where you've"
+	    env echo -e "\t                   lauched this script and \
+its name is build_config.yml"
+	    env echo -e "\t-d <makefile_dir>: Path leading to the directory \
+where your makefile is."
+	    env echo -e "\t                   If you omit this option, then we \
+will assume that the"
+	    env echo -e "\t                   makefile is located in the \
+the directory where you"
+	    env echo -e "\t                   execute this script."
 	    exit 0;;
 	l)
 	    leaveunclean=1;;
+	c) 
+	    CONFIGFILE="$OPTARG";;
+	d)
+	    MAKEFILEDIRECTORY="$OPTARG";;
 	\?)
 	    echo "Invalid option: -$opt" >&2
 	    exit 1;;
@@ -89,45 +128,84 @@ done
 #'_build\_config.yml_'. This file defines a certain number of variable (like the
 #name of the packages, the version of the program, and so on ...) that this
 #script will then use to build the packages the user want. <span class='gras'>
-#The configuration file MUST be in the same directory as this script.</span>
+#Unless you've used the -c option, the configuration file must be located in 
+#the same directory where this script will be launched. </span>
+ 
+#So, firstly, we check if the user has used the -c option. If that is not the 
+#case (i.e. the variable CONFIGFILE is empty), then we will consider that the
+#name of the configuration file is `build_config.yml`, and that it is located
+#in the directory where the script has been launched.
 
-#So, firstly, we check if there's a configuration file. If there isn't
-#any, we exit the script.
-conffile=$1
-if [ ! -f "$conffile" ] 
+if [ -z "$CONFIGFILE" ]
+then
+    CONFIGFILE="build_config.yml";
+fi
+
+#Now, we're checking if CONFIGFILE leads to an existing file. If it's not, then
+#we stop the script, because we need the informations in this file in order
+#to build the packages
+
+if [ ! -f "$CONFIGFILE" ] 
 then
     echo "build_config.yml is missing" >&2
     exit 1;
 else
-    echo "build_config.yml found !"
+    echo "Configuration file found !"
 fi
 
-#Same for the script _config\_parser.pl_.
+#Now, we're looking for the script config_parser.pl, that will read the 
+#configuration file and produce an output like : "export NAME=VALUE", which can
+#be evaluated by the shell interpreter. This file can be located in two places.
+#It can either be in the current directory or in /usr/bin (It can be the case if
+#the user has installed the package contening this script). 
 
-if [ ! -f "config_parser.pl" ] 
+if [ ! -f "config_parser.pl" ] && [ ! -f "/usr/bin/config_parser.pl" ] 
 then
     echo "config_parser.pl is missing" >&2
     exit 2;
 else
     echo "config_parser.pl found !"
+    if [ -f "config_parser.pl" ]
+    then
+	PARSER="./config_parser.pl";
+    else
+	PARSER="config_parser.pl";
+    fi
+fi
+
+#Now, we're checking if the user has used the option -d, in order to indicate
+#the path to the directory that contains the makefile. If he hasn't, then we
+#we use the current directory as the makefile directory. If the user has 
+#specified an inexistant directory, then we exit the script with an error
+
+if [ -z "$MAKEFILEDIR" ]
+then
+    MAKEFILEDIR=`pwd`
+else
+    if [ ! -d "$MAKEFILEDIR" ]
+    then 
+	echo "$MAKEFILEDIR is not a directory" >&2
+	exit 5;
+    fi
 fi
 
 #Then, we parse the configuration file. This is done by the perl script 
-#`config_parser.pl`. This script must also be in the same directory as this
-#script. `config_parser.pl` reads the configuration file, and produces an
-#output that looks like that : `export NAME=VALUE;`. The script that parses
-#the configuration file also check if the user has made some mistakes when 
-#he was filling it (for example, it checks if DIRECTORYNAME contains a path 
-#that leads to an existing directory). So, we have to check if the script has
+#`config_parser.pl`. This script must be in the same directory as this
+#script if you've not installed the debian package containing it. This
+#script needs two arguments : the path leading to the configuration file, and
+#the path leading to the directory where the makefile is located. 
+#`config_parser.pl` reads the configuration file, and produces an
+#output that looks like that : `export NAME=VALUE;`. This script checks if the
+#user has made mistakes when he was filling it (for example, it checks if 
+#the field VERSION is filled). So, we have to check if the script has
 #terminated successfully before continuing. If it hasn't, we print an error
 #message and quit the script immediatly.
 
-vars=`./config_parser.pl $conffile`;
+vars=`./config_parser.pl $CONFIGFILE $MAKEFILEDIR`;
 res=$?;
 case $res in
     "0") eval "$vars"; echo "build_config.yml successfully scanned !";;
-    "1") echo "Error in build_config.yml : DIRECTORYNAME doesn't lead to an \
-existing directory." >&2 ;exit 4;;
+    "1") exit 4;;
     "2") echo "Error in build_config.yml : PACKAGETYPE is empty" >&2 ; exit 4;;
     "3") echo "Error in build_config.yml : Unknown type of package">&2 ;exit 4;;
     "4") echo "Error in build_config.yml : Version number missing (VERSION is \
@@ -152,14 +230,14 @@ esac
 #Debian tools need that in order to build your program.
 
 CURR=`pwd`;
-cd $DIRECTORYNAME;
-DIRECTORYNAME=`pwd`;
+cd $MAKEFILEDIRECTORY;
+MAKEFILEDIRECTORY=`pwd`;
 if [ ! -f Makefile ] 
 then
     echo "Makefile is missing" >&2
     exit 3;
 else
-    echo "Makefile found in $DIRECTORYNAME."
+    echo "Makefile found in $MAKEFILEDIRECTORY."
 fi
 
 #<a id='log'>Creating log</a>
@@ -167,9 +245,10 @@ fi
 
 #We create a log file to keep track of what has been done and we redirect
 #standard output to another log to keep the console clean and readable.
-cd $DIRECTORYNAME/..
+
+cd $MAKEFILEDIRECTORY/..
 LOGDIR=`pwd`
-cd $DIRECTORYNAME
+cd $MAKEFILEDIRECTORY
 LOGFILE=$LOGDIR/build_deb.log
 FULLLOGFILE=$LOGDIR/build_deb_full.log
 
@@ -177,7 +256,8 @@ FULLLOGFILE=$LOGDIR/build_deb_full.log
 :> $FULLLOGFILE
 
 env echo -e "This log was generated by build_deb.sh while building a \n\
-debian package from the sources in $DIRECTORYNAME.\n" | tee -a $LOGFILE $FULLLOGFILE
+debian package from the sources in $MAKEFILEDIRECTORY.\n" | tee -a $LOGFILE \
+ $FULLLOGFILE
 timestamp=`date -R`
 env echo -e "Timestamp :     $timestamp\n" | tee -a $LOGFILE $FULLLOGFILE
 
@@ -186,6 +266,7 @@ env echo -e "Timestamp :     $timestamp\n" | tee -a $LOGFILE $FULLLOGFILE
 
 #We execute commands specified in the configuration file in `BEFOREBUILD` 
 #before doing anything build-related.
+
 IFS=';' read -a commands <<< "$BEFOREBUILD"
 for cmd in "${commands[@]}"
 do
@@ -244,76 +325,104 @@ if [ "$COPYRIGHT" = "gpl" ] || [ "$COPYRIGHT" = "gpl2" ] \
     || [ "$COPYRIGHT" = "bsd" ] || [ "$COPYRIGHT" = "mit" ]
 then
     COPYRIGHTTYPE=predefined;
-    echo "Using a predefined $COPYRIGHT copyright." | tee -a $LOGFILE $FULLLOGFILE
+    echo "Using a predefined $COPYRIGHT copyright." | tee -a $LOGFILE \
+	$FULLLOGFILE
 elif [ -f "$COPYRIGHT" ]
 then
     COPYRIGHTTYPE=file;
-    echo "Using a file copyright located in $COPYRIGHT." | tee -a $LOGFILE $FULLLOGFILE
+    echo "Using a file copyright located in $COPYRIGHT." | tee -a $LOGFILE \
+	$FULLLOGFILE
 else
     COPYRIGHTTYPE=empty;
     echo "Using an empty copyright file." | tee -a $LOGFILE $FULLLOGFILE
 fi
 
-#<a id='lib'>Building the library packages</a>
+#<a id='lib'>Building the packages</a>
 #----------------------------------------------
 
-#This is the part of the script where we're going to build the packages that
-#will contain the library and the header files. This is also where we're
-#going to build the binary package, if it happens that the user wants to build
-#both type of packages. Indeed, if the user wants to build both type of packages
-#, it is much simpler to do it in this part of the script, because this is
-#where there are less modification to do in the debian files.
+#This is the part of the script where we're going to build the packages that the
+#user want. 
 
-if [ ! -z $LIBTARBALL ]
-then
-    echo "Creating library packages :" | tee -a $LOGFILE $FULLLOGFILE
+echo "Creating packages :" | tee -a $LOGFILE $FULLLOGFILE
 
 #<a id='libdeb'>Creation of the Debian files</a>
 #-----------------------------------------------
 
 #In order to build packages, debuild (the utilitary that will create the 
 #package) needs some files that must be put in a directory 
-#named _debian_, in the source code directory (variable DIRECTORYNAME in 
-#the configuration file).
+#named _debian_, in the directory that contains the makefile that allows us to
+#build your program.
 
 #The files that debuild needs can be created automatically by the command 
 #dh_make. We call dh_make with those options :
-#1. -l : It means that we want to create library packages.
-#2. -c : It tells dh_make we want a pre-filled copyright file.
+#1. `-l` or `-s` or `-i` : It means that we want to create a certain type of
+#package. Here is the meaning of each one of those options :
+#  1. `-l` : It means we're going to create library packages (one containing
+#libraries, and one containing headers). If it happens that the user wants
+#to build library packages and a binary package, then we use that option
+#because the files generated by that option need less modification than the ones
+#generated by the `-s` option.
+#  2. `-s` : This tells dh-make that we're going to build a binary package.
+#  3. `-i` : This is the option we use for packages that don't depend on the
+#architecture of your computer. You can put scripts, images, and a lot of things
+#that don't depend on the architecture of your computer in this type package.
+#2. -c : It tells dh_make we want a pre-filled copyright file (We use that if 
+#the user has filled the field COPYRIGHT of the configuration file with one
+#of the following value : `gpl`, `gpl2`, `gpl3`, `lgpl`, `lgpl2`, `lgpl3`, 
+#`artistic`, `apache`, `bsd`, `mit`).
 #3. -p : Forces the package name to be what is after that option. It's quite
 #usefull because dh_make normally checks if the source code directory is named
-#according to the following pattern : &lt;packagename&gt;-&lt;version&gt;. 
+#according to the following pattern : `<packagename>-<version>`. 
 #This option allows you to name your directory whatever name you want.
 
-#We remove de debian directory, because if there is one, dh_make will not make
-#any changes, and that's not what we want.
-    rm -rf debian/
+#First we have to remove the debian directory, because if there is one,
+#dh_make will not make any changes, and that's not what we want.
+
+rm -rf debian/
 
 #We create a temporary file that only contains a blank line. We do that because
-#dh_make waits an input from the user
-    env echo -e -n "\n" > debtmpfile
+#dh_make waits an input from the user. We know that there's a -y option that
+#tells dh_make not to ask for the user confirmation. However, that option is not
+#available on every dh_make version, so we've made the choice to do it that way.
+
+env echo -e -n "\n" > debtmpfile
 
 #We use the -c option of dh_make if the user specified that the copyright file
 #must be generated by dh_make. You shouldn't really do that because the
 #copright files that are generated by dh_make needs to be filled with
 #correct information
-    if [ "$COPYRIGHTTYPE" = "predefined" ]
+
+if [ "$COPYRIGHTTYPE" = "predefined" ]
+then
+    if [ ! -z "$LIBTARBALL" ]
     then
-	dh_make -l -c $COPYRIGHT -p "$LIBPACKAGENAME""_$VERSION" < debtmpfile >> $FULLLOGFILE
+	dh_make -l -c $COPYRIGHT -p "$LIBPACKAGENAME""_$VERSION" < debtmpfile \
+>> $FULLLOGFILE
     else
-	dh_make -l -p "$LIBPACKAGENAME""_$VERSION" < debtmpfile >> $FULLLOGFILE
+	dh_make -s -c $COPYRIGHT -p "$BINPACKAGENAME""_$VERSION" < debtmpfile \
+>> $FULLLOGFILE
     fi
-    
-#If the user has written a copyright file, we copy it in the debian directory
-    if [ "$COPYRIGHTTYPE" = "file" ] 
+else
+    if [ ! -z "$LIBTARBALL" ]
     then
-	cp $COPYRIGHT debian/copyright
+	dh_make -l -p "$LIBPACKAGENAME""_$VERSION" < debtmpfile >> $FULLLOGFILE
+    else
+	dh_make -s -p "$BINPACKAGENAME""_$VERSION" < debtmpfile >> $FULLLOGFILE
     fi
+fi
+
+#If the user has written a copyright file, we copy it in the debian directory
+
+if [ "$COPYRIGHTTYPE" = "file" ] 
+then
+    cp $COPYRIGHT debian/copyright
+fi
 
 #We then remove the temporary file we have created.
-    rm -f debtmpfile
-    
-    echo "Template files generated by dh_make." | tee -a $LOGFILE $FULLLOGFILE
+
+rm -f debtmpfile
+
+echo "Template files generated by dh_make." | tee -a $LOGFILE $FULLLOGFILE
 
 #<a id='libmod'>Modification of the debian files</a>
 #----------------------------------------------------
@@ -322,136 +431,176 @@ then
 #must modify some of them, because some of them are not complete.
 
 #First, we need to modify the changelog file, because if we don't, the name
-#of the package will be something like : &lt;packagename&gt;\_&lt;version&gt;-1
-#\_&lt;archi&gt;.deb.    This is not what we want. We want something like :
-#&lt;packagename&gt;\_&lt;version&gt;\_&lt;archi&gt;.deb.
+#of the package will be something like : `<packagename>_<version>-1_<archi>.deb`
+#. This is not what we want. We want something like :
+#`<packagename>_<version>_<archi>.deb`.
 
-    perl -pi -e 's/\(((\d+\.?)+)-\d+\)/($1)/' debian/changelog
-
+perl -pi -e 's/\(((\d+\.?)+)-\d+\)/($1)/' debian/changelog
+    
 #Some of the files generated by dh_make are just examples of what you should 
 #provide. This is not interesting to us, therefore we have to suppress them.
 
-    rm -rf debian/*.EX debian/*.ex debian/README*
+rm -rf debian/*.EX debian/*.ex debian/README*
 
 #We then have to rename the dirs files and the install files that have been
 #created by dh\_make. .dirs files tells _debuild_ what are the directories
 #that must created in the package(s). .install files tells the _debuild_ 
 #command what files must be put in the package(s). You can create up to one
 #.dirs file and one .install file for each package you want to build.
-#We need to rename those files because the generated files are named according
-#to those patterns : &lt;packagename&gt;1.dirs and &lt;packagename&gt;1.install
-#. This is not 
+#If the user wants to build library packages, we need to rename those files 
+#because the generated files are named according to these patterns :
+#`<packagename>1.dirs` and `<packagename>1.install`. This is not 
 #correct, because those files must be named after the package name. Thus, 
 #we must rename them according to the following pattern : 
-#&lt;packagename&gt;.dirs and &lt;packagename&gt;.install.
+#`<packagename>.dirs` and `<packagename>.install`.
 
+if [ ! -z "$LIBTARBALL" ]
+then
     mv debian/"$LIBPACKAGENAME"1.dirs debian/"$LIBPACKAGENAME".dirs
     mv debian/"$LIBPACKAGENAME"1.install debian/"$LIBPACKAGENAME".install
+fi
 
-#In the control file, the name of the package is &lt;packagename&gt;BROKEN.
+#If we're building library packages, we must modify the control file because
+#in the control file, the name of the package is `<packagename>BROKEN`.
 #This is not the package name we want, we must therefore change it to
-#&lt;packagename&gt;.
+#`<packagename>`.
 
+if [ ! -z "$LIBTARBALL" ]
+then
     sed -i -r -e s/"$LIBPACKAGENAME"BROKEN/"$LIBPACKAGENAME"/g debian/control
-
-    echo "Library package renamed to $LIBPACKAGENAME." | tee -a $LOGFILE $FULLLOGFILE
+    echo "Library package renamed to $LIBPACKAGENAME." | tee -a $LOGFILE \
+	$FULLLOGFILE
+fi
 
 #Then, we have to fill the .install and .dirs files with correct information.
 #In order to do that, we use the variables LIBNAMES (which contains the
-#libraries you want to include in the package) and HEADERNAMES (which contains
-#the name of the header files you want to include in the package).
+#libraries you want to include in the library package), HEADERNAMES (which 
+#contains the name of the header files you want to include in the library 
+#package) and BINARYNAMES (which contains the names of the binaries you want 
+#to include in the binary package). If HEADERNAMES is empty, we remove the part
+#of the control file that concern the package that will contains the header
+#files. Therefore, that package will not be created.
+
+if [ ! -z "$LIBTARBALL" ]
+then
+
+#Libraries will be put in `/usr/lib/<packagename>/` when the package will
+#be installed
 
     rm -f debian/$LIBPACKAGENAME.install
     for library in $LIBNAMES
     do
-	echo "$library usr/lib/$LIBPACKAGENAME" >> \
-	    debian/$LIBPACKAGENAME.install
+	echo "$library usr/lib/$LIBPACKAGENAME" >>debian/$LIBPACKAGENAME.install
     done;
-    if [ ! -z "$LIBNAMES" ] ; then
+
+    if [ ! -z "$LIBNAMES" ] 
+    then
 	echo "Added libraries that will be included in \
 debian/$LIBPACKAGENAME.install : $LIBNAMES." | tee -a $LOGFILE $FULLLOGFILE
     fi
 
-    if [ ! -z "$HEADERNAMES" ] ; then
+
+#Headers will be put in `/usr/include/<packagename>/` when the package will
+#be installed.
+
+    if [ ! -z "$HEADERNAMES" ]
+    then
 	rm -f debian/$LIBPACKAGENAME-dev.install;
 	for header in $HEADERNAMES
 	do
-	    echo "$header usr/include/$LIBPACKAGENAME" >> \
-		debian/$LIBPACKAGENAME-dev.install
+	    echo "$header usr/include/$LIBPACKAGENAME" >>\
+debian/$LIBPACKAGENAME-dev.install
 	done;
+
 	echo "Added headers that will be included in \
-debian/$LIBPACKAGENAME-dev.install : $HEADERNAMES." | tee -a $LOGFILE $FULLLOGFILE
+debian/$LIBPACKAGENAME-dev.install : $HEADERNAMES." | tee -a $LOGFILE \
+	    $FULLLOGFILE
     else
 	perl -0777 -pi -e "s/Package: $LIBPACKAGENAME-dev.+?\n\n//s" \
 	    debian/control
     fi
-   
-#If the user wants to build both types of packages, we create a .install file
-#and a .dirs file containing the right informations. 
-    if [ ! -z $BINTARBALL ] 
-    then
+fi
 
-	for binary in $BINARYNAMES
-	do
-	    echo "$binary usr/bin" >> debian/$BINPACKAGENAME.install
-	done;
-	echo "Added binaries that will be included in \
+if [ ! -z "$BINTARBALL" ] 
+then
+    
+    for binary in $BINARYNAMES
+    do
+	echo "$binary usr/bin" >> debian/$BINPACKAGENAME.install
+    done;
+
+    echo "Added binaries that will be included in \
 debian/$BINPACKAGENAME.install : $BINARYNAMES." | tee -a $LOGFILE $FULLLOGFILE
-	echo "usr/bin" >> debian/$BINPACKAGENAME.dirs
-	echo "Added /usr/bin to debian/$BINPACKAGENAME.dirs." | tee -a $LOGFILE $FULLLOGFILE
 
-#We then have to add information in the control file. We have to tell _debuild_
-#that there's another package to create.
+    echo "usr/bin" >> debian/$BINPACKAGENAME.dirs
+    echo "Added /usr/bin to debian/$BINPACKAGENAME.dirs." | tee -a $LOGFILE \
+	$FULLLOGFILE
+fi
 
-	env echo -e -n "\n" >> debian/control
-	echo "Package: $BINPACKAGENAME" >> debian/control
-	echo "Architecture: any" >> debian/control
-	if [ ! -z "$PACKAGEDEPENDS" ]
-	then
-	    echo 'Depends: ${shlibs:Depends}, ${misc:Depends}, '\
-"$PACKAGEDEPENDS" >> debian/control
-	else
-	    echo 'Depends: ${shlibs:Depends}, ${misc:Depends}' >>debian/control
-	fi
-	echo 'Description: <insert up to 60 chars description>' >>debian/control
-	echo ' <insert long description, indented with spaces>' >>debian/control
-	echo "Added binary package description to debian/control file." \
-	    | tee -a $LOGFILE $FULLLOGFILE
-    fi
+#If the user want to build library packages and a binary package, we have to
+#tell the tool that will create them that there's a binary package in addition
+#of the two library packages. This is due to the `-l` option used when the user
+#wants to build both type of packages. This option creates a control file that
+#contains information for library packages only.
 
-#Now, we have to add the dependencies of the packages, in the control file.
+if [ ! -z "$LIBTARBALL" ] && [ ! -z "$BINTARBALL" ]
+then 
+    env echo -e -n "\n" >> debian/control
+    echo "Package: $BINPACKAGENAME" >> debian/control
+    echo "Architecture: any" >> debian/control
+
     if [ ! -z "$PACKAGEDEPENDS" ]
     then
-	perl -pi -e 's/^(Depends:.+)$/$1, '"$PACKAGEDEPENDS/" debian/control 
-	echo "Added runtime dependencies to debian/control : $PACKAGEDEPENDS." \
-	    | tee -a $LOGFILE $FULLLOGFILE
+	echo 'Depends: ${shlibs:Depends}, ${misc:Depends}, '\
+"$PACKAGEDEPENDS" >> debian/control
+    else
+	echo 'Depends: ${shlibs:Depends}, ${misc:Depends}' >>debian/control
     fi
+    echo 'Description: <insert up to 60 chars description>' >>debian/control
+    echo ' <insert long description, indented with spaces>' >>debian/control
 
-    if [ ! -z "$BUILDDEPENDS" ]
-    then
-	perl -pi -e 's/(Build-Depends:.+)$/$1, '"$BUILDDEPENDS/" debian/control
-	echo "Added build dependencies to debian/control : $BUILDDEPENDS." \
-	    | tee -a $LOGFILE $FULLLOGFILE
-    fi
-    
-#Now, we edit the rules file to add custom flags to various commands
-    if [ -n "$CONFIGUREFLAGS" ]
-    then
-	echo "override_dh_auto_configure:" >> debian/rules
-    	env echo -e "\tdh_auto_configure -- $CONFIGUREFLAGS" >> debian/rules
-    	echo "" >> debian/rules
-    	libdir="-l"
-    	for lib in $LIBNAMES
-    	do
-		l=`echo $lib | grep -E -o ".+/"`
-		libdir="$libdir$l:"
-    	done
-    	libdir=`echo $libdir | perl -ne 'chomp;chop;print $_'`
-    	echo "override_dh_shlibdeps:" >> debian/rules
-    	env echo -e "\tdh_shlibdeps $libdir" >> debian/rules
-    	echo "" >> debian/rules
-	echo "Added the following flags to configure execution : $CONFIGUREFLAGS." | tee -a $LOGFILE $FULLLOGFILE
-    fi
+    echo "Added binary package description to debian/control file." \
+	| tee -a $LOGFILE $FULLLOGFILE
+fi
+
+#Now, we have to add the dependencies of the packages, in the control file.
+
+if [ ! -z "$PACKAGEDEPENDS" ]
+then
+    perl -pi -e 's/^(Depends:.+)$/$1, '"$PACKAGEDEPENDS/" debian/control 
+    echo "Added runtime dependencies to debian/control : $PACKAGEDEPENDS." \
+	| tee -a $LOGFILE $FULLLOGFILE
+fi
+
+if [ ! -z "$BUILDDEPENDS" ]
+then
+    perl -pi -e 's/(Build-Depends:.+)$/$1, '"$BUILDDEPENDS/" debian/control
+    echo "Added build dependencies to debian/control : $BUILDDEPENDS." \
+	| tee -a $LOGFILE $FULLLOGFILE
+fi
+
+#Then, if the user want to call the `configure` script of his project
+#with special flags, we have to modify the _rules_ file in order to use them
+#when _debuild_ will call it.
+
+if [ -n "$CONFIGUREFLAGS" ]
+then
+    echo "override_dh_auto_configure:" >> debian/rules
+    env echo -e "\tdh_auto_configure -- $CONFIGUREFLAGS" >> debian/rules
+    echo "" >> debian/rules
+    libdir="-l"
+    for lib in $LIBNAMES
+    do
+	l=`echo $lib | grep -E -o ".+/"`
+	libdir="$libdir$l:"
+    done
+    libdir=`echo $libdir | perl -ne 'chomp;chop;print $_'`
+    echo "override_dh_shlibdeps:" >> debian/rules
+    env echo -e "\tdh_shlibdeps $libdir" >> debian/rules
+    echo "" >> debian/rules
+    echo "Added the following flags to configure execution : $CONFIGUREFLAGS." \
+	| tee -a $LOGFILE $FULLLOGFILE
+fi
 
 #<a id='libsource'>Creation of the source package</a>
 #----------------------------------------------------
@@ -464,194 +613,63 @@ debian/$BINPACKAGENAME.install : $BINARYNAMES." | tee -a $LOGFILE $FULLLOGFILE
 #errors detected by _lintian_ can be corrected automatically. This is why we've
 #created a script called _correct\_lintian.pl_, that corrects some of thoses
 #errors. 
-    echo "Building source package..." | tee -a $LOGFILE $FULLLOGFILE
-    debuild -S -uc -us >> $FULLLOGFILE
-    echo "Source package successfully built." | tee -a $LOGFILE $FULLLOGFILE
-    echo "Running correction to lintian errors..." | tee -a $LOGFILE $FULLLOGFILE
-    $CURR/correct_lintian.pl  ../"$LIBPACKAGENAME""_$VERSION""_source.build" >> $FULLLOGFILE
-    echo "Lintian errors corrected." | tee -a $LOGFILE $FULLLOGFILE
+
+echo "Building source package..." | tee -a $LOGFILE $FULLLOGFILE
+
+debuild -S -uc -us >> $FULLLOGFILE
+
+echo "Source package successfully built." | tee -a $LOGFILE $FULLLOGFILE
+echo "Running correction to lintian errors..." | tee -a $LOGFILE \
+    $FULLLOGFILE
+
+if [ -f "$CURR/correct_lintian.pl" ]
+then
+    $CURR/correct_lintian.pl  ../"$LIBPACKAGENAME""_$VERSION""_source.build" >>\
+$FULLLOGFILE
+elif [ -f "/usr/bin/correct_lintian.pl" ] 
+then
+    correct_lintian.pl  ../"$LIBPACKAGENAME""_$VERSION""_source.build" >> \
+	$FULLLOGFILE
+fi
+echo "Lintian errors corrected." | tee -a $LOGFILE $FULLLOGFILE
    
 #<a id='libbuild'>Building the package</a>
 #-----------------------------------------
 
 #Now, we can finally build the package. _debuild_ does pretty much all the work.
 #-us and -uc options means that we don't sign the packages.
-    echo "Building debian packages..." | tee -a $LOGFILE $FULLLOGFILE
-    debuild -us -uc >> $FULLLOGFILE
-    echo "Debian packages successfully built." | tee -a $LOGFILE $FULLLOGFILE
+
+echo "Building debian packages..." | tee -a $LOGFILE $FULLLOGFILE
+debuild -us -uc >> $FULLLOGFILE
+echo "Debian packages successfully built." | tee -a $LOGFILE $FULLLOGFILE
 
 #We now have to remove the debian directory, the tarballs, and some files
 #created by _debuild_.
-    if [ $leaveunclean -eq 0 ]
-    then
-	echo "Cleaning directory..." | tee -a $LOGFILE $FULLLOGFILE
-	rm -rf debian/ && cd ..;
-	rm -f "$BINTARBALL" "$LIBTARBALL";
-	rm -f "$LIBPACKAGENAME""_$VERSION.debian.tar.gz";
-	rm -f *.build *.changes;
-    fi
+
+if [ $leaveunclean -eq 0 ]
+then
+    echo "Cleaning directory..." | tee -a $LOGFILE $FULLLOGFILE
+    rm -rf debian/ && cd ..;
+    rm -f "$BINTARBALL" "$LIBTARBALL";
+    rm -f "$LIBPACKAGENAME""_$VERSION.debian.tar.gz";
+    rm -f "$BINPACKAGENAME""_$VERSION.debian.tar.gz";
+    rm -f *.build *.changes;
+fi
     
-#<a id='beforebuild'>Running before build operations</a>
+#<a id='afterbuild'>Running After build operations</a>
 #-------------------------------------------------------
 
-#We execute commands specified in the configuration file in `AFTERBUILD` 
-    IFS=';' read -a commands <<< "$AFTERBUILD"
-    for cmd in "${commands[@]}"
-    do
-	echo $cmd | tee -a $LOGFILE $FULLLOGFILE
-	eval "$cmd"
-    done
+#We execute commands specified in the configuration file in the field AFTERBUILD
+    
+IFS=';' read -a commands <<< "$AFTERBUILD"
+for cmd in "${commands[@]}"
+do
+    echo $cmd | tee -a $LOGFILE $FULLLOGFILE
+    eval "$cmd"
+done
 
-    env echo -e "\nYou can now find your debian packages and logs in \
+env echo -e "\nYou can now find your debian packages and logs in \
 $LOGDIR. build_deb.log is the same as the previous output, and \
 build_deb_full.log is a complete output of every program called by \
 build_deb.sh (compilation, package building operations, etc...)." \
-| tee -a $LOGFILE $FULLLOGFILE
-
-#If the user wanted to create both type of packages, we can exit the script
-#because we've done that.
-    if [ ! -z $BINTARBALL ]
-    then
-	exit 0;
-    fi
-#<a id'=bin'>Building the binary package</a>
-#-------------------------------------------
-
-elif [ ! -z $BINTARBALL ] 
-then
-
-#<a id='bindeb'>Creation of the debian files</a>
-#-----------------------------------------------
-
-#In this part of the script, we create the files that _debuild_ needs to build
-#the package. We do exactly the same things as above, so you should read that
-#part of the script.
-
-#Removing the debian directory, if it exists
-    rm -rf debian/
-
-#Creation of the debian files 
-#The only difference between this call to _dh\_make_ and the one above is
-#the -s option. This option tells _dh\_make_ that we want to create a binary
-#package.
-
-    env echo -e -n "\n" >debtmpfile
-    if [ $COPYRIGHTTYPE = "predefined" ]
-    then
-	dh_make -s -c $COPYRIGHT -p "$BINPACKAGENAME""_$VERSION" < debtmpfile >> $FULLLOGFILE
-    else
-	dh_make -s -p "$BINPACKAGENAME""_$VERSION" < debtmpfile >> $FULLLOGFILE
-    fi
-
-#Copying the copyright file, if there is one
-    if [ $COPYRIGHTTYPE = "file" ] 
-    then
-	cp $COPYRIGHT debian/copyright
-    fi
-
-    rm -f debtmpfile
-
-    echo "Template files generated by dh_make." | tee -a $LOGFILE $FULLLOGFILE
-
-#<a id='debmod'>Modification of the debian files</a>
-#----------------------------------------------------
-
-#Modifying the changelog file
-
-    perl -pi -e 's/\(((\d+\.?)+)-\d+\)/($1)/' debian/changelog
-
-#Removing useless files
-
-    rm -rf debian/*.EX debian/*.ex debian/README*
-
-#Creating .install file
-    for binary in $BINARYNAMES
-    do
-	echo "$binary usr/bin" >> debian/$BINPACKAGENAME.install
-    done;
-    echo "Added binaries that will be included in \
-debian/$BINPACKAGENAME.install : $BINARYNAMES." | tee -a $LOGFILE $FULLLOGFILE
-
-#Creating .dirs file
-    echo "usr/bin" >> debian/$BINPACKAGENAME.dirs
-    echo "Added /usr/bin to debian/$BINPACKAGENAME.dirs." | tee -a $LOGFILE $FULLLOGFILE
-
-#Adding dependencies, if there are any
-    if [ ! -z "$PACKAGEDEPENDS" ]
-    then
-	perl -pi -e 's/^(Depends:.+)$/$1, '"$PACKAGEDEPENDS/" debian/control
-	echo "Added runtime dependencies to debian/control : $PACKAGEDEPENDS." \
-	    | tee -a $LOGFILE $FULLLOGFILE
-    fi
-
-    if [ ! -z "$BUILDDEPENDS" ]
-    then
-	perl -pi -e 's/^(Build-Depends:.+)$/$1, '"$BUILDDEPENDS/" debian/control
-	echo "Added build dependencies to debian/control : $BUILDDEPENDS." \
-	    | tee -a $LOGFILE $FULLLOGFILE
-    fi
-
-
-#Now, we edit the rules file to add custom flags to various commands
-    if [ -n "$CONFIGUREFLAGS" ]
-    then
-    	echo "override_dh_auto_configure:" >> debian/rules
-    	env echo -e "\tdh_auto_configure -- $CONFIGUREFLAGS" >> debian/rules
-    	echo "" >> debian/rules
-    	libdir="-l"
-    	for lib in $LIBNAMES
-    	do
-		l=`echo $lib | grep -E -o ".+/"`
-		libdir="$libdir$l:"
-    	done
-    	libdir=`echo $libdir | perl -ne 'chomp;chop;print $_'`
-    	echo "override_dh_shlibdeps:" >> debian/rules
-    	env echo -e "\tdh_shlibdeps $libdir" >> debian/rules
-    	echo "" >> debian/rules
-	echo "Added the following flags to configure execution : $CONFIGUREFLAGS." | tee -a $LOGFILE $FULLLOGFILE
-    fi
-
-#<a id='binsource'>Creation of the source package</a>
-#----------------------------------------------------
-
-#We build the source package, and then we correct some of the mistakes
-#that _lintian_detected
-    echo "Building source package..." | tee -a $LOGFILE $FULLLOGFILE
-    debuild -S -uc -us >> $FULLLOGFILE
-    echo "Source package successfully built." | tee -a $LOGFILE $FULLLOGFILE
-    echo "Running correction to lintian errors..." | tee -a $LOGFILE $FULLLOGFILE
-    $CURR/correct_lintian.pl ../"$BINPACKAGENAME""_$VERSION""_source.build" >> $FULLLOGFILE
-    echo "Lintian errors corrected." | tee -a $LOGFILE $FULLLOGFILE
-    
-
-#<a id='libbuild'>Building the package</a>
-#-----------------------------------------
-
-#Building the package
-    echo "Building debian packages..." | tee -a $LOGFILE $FULLLOGFILE
-    debuild -us -uc >> $FULLLOGFILE
-    echo "Debian packages successfully built." | tee -a $LOGFILE $FULLLOGFILE
-
-#Removing useless files
-    if [ $leaveunclean -eq 0 ]
-    then
-	echo "Cleaning directory..." | tee -a $LOGFILE $FULLLOGFILE
-	rm -rf debian/ && cd ..;
-	rm -f "$BINTARBALL" "$LIBTARBALL";
-	rm -f "$BINPACKAGENAME""_$VERSION.debian.tar.gz";
-	rm -f *.build *.changes;
-    fi
-
-#<a id='beforebuild'>Running before build operations</a>
-#-------------------------------------------------------
-
-#We execute commands specified in the configuration file in `AFTERBUILD` 
-    IFS=';' read -a commands <<< "$AFTERBUILD"
-    for cmd in "${commands[@]}"
-    do
-	echo $cmd | tee -a $LOGFILE $FULLLOGFILE
-	eval "$cmd"
-    done
-
-fi
-
+    | tee -a $LOGFILE $FULLLOGFILE
