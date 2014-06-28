@@ -1,11 +1,18 @@
 #! /usr/bin/perl
 
 use strict;
-
-#print "# perl script begins\n";
+use File::Basename;
+if (scalar @ARGV !=2){
+    my$name=basename($0);
+    print STDERR "Incorrect number of arguments\n";
+    print STDERR "Usage : $name <config_file> <makefile_dir>\n";
+    exit 1;
+}
 
 my$in=shift;
 $/=undef;
+my $dirname=shift;
+$dirname=$1 if ($dirname=~/^(.+)\/$/);
 
 open IN, $in;
 my$config = <IN>;
@@ -47,11 +54,6 @@ $config =~ /PACKAGEDEPENDS=\"(.*?)\";/;
 $res=$1;
 $res=~s/ (?=[^\d\(\s])/, /g, $1;
 $config =~ s/PACKAGEDEPENDS=\"(.*?)\";/PACKAGEDEPENDS=\"$res\";/;
-
-#Now we're going to check if DIRECTORYNAME contains a valid directory
-$config =~ /DIRECTORYNAME=\"(.*?)\";/;
-my$dirname=$1;
-exit 1 if (!(-d $dirname));
 
 #Checking version
 $config =~ /VERSION=\"(.*?)\";/;
