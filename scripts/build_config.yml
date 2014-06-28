@@ -16,17 +16,14 @@
 #---
 # Before filling this configuration file, there are some general things
 # you should know.
-# - Paths are relative to the one specified in the `DIRECTORYNAME` field
+# - Paths are relative to the directory containing the makefile that builds
+#your project
 # - When asked for a list, you can put each item on the same line, separated
 # by a space, or you can write each item on a line beginning with a hyphen
 # '-', followed by a space and the item (see the examples in this file)
 
 # Program informations
 #---
-
-# Name of the directory containing source files. This path must be relative
-# to where the script is run from. Do not put a `/` at the end of this path.
-DIRECTORYNAME	: libtest-2.3.7
 
 # Desired name of the package containing binaries (can be left empty if you
 # are not building a binary package)
@@ -50,16 +47,16 @@ VERSION : 2.3.7
 # - `apache`
 # - `bsd`
 # - `mit`
-# - a path leading to your own copyright file. If using your own file
+# - a path leading to your own copyright file.
 # If left empty, the script will search for files named `COPYING` or `LICENSE`
-# in the `DIRECTORYNAME` folder to use them. If those files are not found, an
+# in the directory where your makefile is. If those files are not found, an
 # empty copyright file will be put in your package
 COPYRIGHT : gpl
 
 # Developers' names, email addresses and years of activity on this project.
 # Must be filled this way, and this way only to have a proper copyright
 # file : `years name <email>`. If left empty, the script will search for a file
-# named `AUTHORS` in the `DIRECTORYNAME` folder to fill the copyright files.
+# named `AUTHORS` in the directory containing the makefile of your project.
 # If you are not using a generated copyright file
 # (ie. the field `COPYRIGHT` is a path to your own copyright file or left
 # blank), you can leave this field empty.
@@ -111,8 +108,8 @@ CONFIGUREFLAGS :
 
 # In this section, you can use filename expansion to avoid listing a lot of
 # files in the same directory like headers or libraries.
-# All paths must be relative to the directory specified in `DIRECTORYNAME`
-# field previously.
+# All paths must be relative to the directory where the makefile of your
+# project is located. 
 
 # List the binaries you want to include in your binary package
 BINARYNAMES : bin/testbin1 bin/testbinary
@@ -132,8 +129,7 @@ HEADERNAMES :
 # The following values are used to have a "nice" package, with someone to call
 # if there is a problem, descriptions, and so on. Therefore, those are not
 # mandatory, but <strong>strongly recommended</strong>.
-# All paths must be relative to the directory name specified in `DIRECTORYNAME`
-# field previously.
+# All paths must be relative to the directory containing your makefile
 
 # Path to the description file of the binary package. This description will be
 # useful for the user if he wants to know what your package does before
