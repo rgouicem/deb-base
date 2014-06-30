@@ -33,7 +33,10 @@ my$buildfilename = shift;
 
 # First of all, we must open this build log and get the warnings and errors
 # lintian detected. This part of the log will now be found in `$lintianLog`
-open BUILDLOG, $buildfilename;
+if (! open BUILDLOG, $buildfilename) {
+    print "Couldn't open $buildfilename";
+    die ($!);
+}
 $/ = undef;
 my$log = <BUILDLOG>;
 
@@ -43,11 +46,17 @@ my$lintianLog = $1;
 # Now, we open the files we are going to edit and make a copy of them in memory
 
 # Opening debian/control
-open CONTROL, "debian/control" or die($!);
+if (! open CONTROL, "debian/control") {
+    print "Couldn't open debian/control";
+    die($!);
+}
 my$control = <CONTROL>;
 close CONTROL;
 # Opening debian/copyright
-open COPYRIGHT, "debian/copyright" or die($!);
+if (! open COPYRIGHT, "debian/copyright") {
+    print "Couldn't open debian/copyright";
+    die($!);
+}
 my$copyright = <COPYRIGHT>;
 close COPYRIGHT;
 
