@@ -62,6 +62,7 @@
 #In this part of the script, we are parsing the arguments given to the script.
 #Here is the list of the options you can use when you call this script : 
 #- `-h` : If you want an help to be displayed.
+#- `-g` : If you want to generate a configuration file template.
 #- `-l` : Use that if you don't want the script to remove temporary files. 
 #Those files includes : 
 #  - The tarballs (i.e. the archives that contains your source code)
@@ -79,7 +80,7 @@
 #the makefile is in the directory where you'll launch this script.
 
 leaveunclean=0
-while getopts "c:d:lh" opt; do
+while getopts "c:d:lgh" opt; do
     case $opt in
 	h)
 	    echo "Usage: `basename $0` [OPTIONS]";
@@ -108,6 +109,7 @@ will assume that the"
 	    env echo -e "\t\t\tmakefile is located in the \
 the directory where you"
 	    env echo -e "\t\t\texecute this script."
+	    env echo -e "  -g\t\t\tGenerate a configuration file template."
 	    exit 0;;
 	l)
 	    leaveunclean=1;;
@@ -115,6 +117,16 @@ the directory where you"
 	    CONFIGFILE="$OPTARG";;
 	d)
 	    MAKEFILEDIR="$OPTARG";;
+	g)
+	    if [ -f "/usr/share/buildeb/build_config.yml" ]; then
+		cp /usr/share/buildeb/build_config.yml .
+		echo "build_config.yml successfully generated !"
+		exit 0;
+	    else
+		echo "Couldn't find build_config.yml in /usr/share/buildeb."
+		exit 1;
+	    fi
+	    ;;
 	\?)
 	    echo "Usage: `basename $0` [OPTIONS]";
 	    exit 1;;
@@ -215,11 +227,13 @@ empty)" >&2 ; exit 4;;
     "6") echo "Error in build_config.yml : LIBPACKAGENAME is empty">&2 ;exit 4;;
     "7") echo "Error in build_config.yml : COPYRIGHT variable doesn't contain \
 a path that lead to an existing file">&2 ;exit 4;;
-    "8") echo "Error in build_config.yml : DEVS is empty (and it should'nt \
+    "8") echo "Error in build_config.yml : DEVS is empty (and it shouldn't \
 because COPYRIGHT isn't a file)" >&2 ; exit 4;;
     "9") echo "Error in build_config.yml : BINARYNAMES is empty">&2; exit 4;;
     "10") echo "Error in build_config.yml : LIBNAMES and HEADERNAMES are \
 empty">&2;exit 4;;
+    "11") echo "Error in build_config.yml : INDPACKAGENAME is empty">&2;exit 4;;
+    "12") echo "Error in build_config.yml : INDNAMES is empty">&2; exit 4;;
     *) echo "Unknown error">&2;exit 4;;
 esac
 
@@ -295,6 +309,7 @@ done
 
 LIBPACK=false
 BINPACK=false
+INDPACK=false
 for var in $PACKAGETYPE; do
     if [ $var = "l" ]
     then
@@ -306,7 +321,14 @@ for var in $PACKAGETYPE; do
 	BINPACK=true
 	echo "Building binary package." | tee -a $LOGFILE $FULLLOGFILE
     fi
+    if [ $var = "i" ]
+    then
+	INDPACK=true
+	echo "Building architecture independant package." | tee -a \
+$LOGFILE $FULLLOGFILE
+    fi
 done
+
 if [ $LIBPACK == true ]
 then
     TARBALL="$LIBPACKAGENAME""_$VERSION.orig.tar.gz"
@@ -315,6 +337,10 @@ elif [ $BINPACK == true ]
 then
     TARBALL="$BINPACKAGENAME""_$VERSION.orig.tar.gz"
     PACKNAME="$BINPACKAGENAME""_$VERSION"
+elif [ $INDPACK == true ]
+then
+    TARBALL="$INDPACKAGENAME""_$VERSION.orig.tar.gz"
+    PACKNAME="$INDPACKAGENAME""_$VERSION"
 fi
 echo "tar czf "../$TARBALL" ." >> $FULLLOGFILE
 tar czf "../$TARBALL" . >> $FULLLOGFILE
@@ -409,23 +435,20 @@ env echo -e -n "\n" > debtmpfile
 
 if [ "$COPYRIGHTTYPE" = "predefined" ]
 then
-    if [ $LIBPACK == true ]
-    then
-    echo "dh_make -l -c $COPYRIGHT -p $PACKNAME" >> $FULLLOGFILE
-    dh_make -l -c $COPYRIGHT -p $PACKNAME < debtmpfile >> $FULLLOGFILE
-    elif [ $BINPACK == true ]
-    then
-	dh_make -s -c $COPYRIGHT -p "$BINPACKAGENAME""_$VERSION" < debtmpfile \
->> $FULLLOGFILE
-    fi
-else
-    if [ $LIBPACK == true ]
-    then
-	echo " dh_make -l -p $PACKNAME" >> $FULLLOGFILE
-	dh_make -l -p $PACKNAME < debtmpfile >> $FULLLOGFILE
-    else
-	dh_make -s -p "$BINPACKAGENAME""_$VERSION" < debtmpfile >> $FULLLOGFILE
-    fi
+copy="-c $COPYRIGHT"
+fi
+if [ $LIBPACK == true ]
+then
+    echo "dh_make -l $copy -p $PACKNAME" >> $FULLLOGFILE
+    dh_make -l $copy -p $PACKNAME < debtmpfile >> $FULLLOGFILE
+elif [ $BINPACK == true ]
+then
+    echo "dh_make -s $copy -p $PACKNAME" >> $FULLLOGFILE
+    dh_make -s $copy -p $PACKNAME < debtmpfile >> $FULLLOGFILE
+elif [ $INDPACK == true ]
+then
+    echo "dh_make -i $copy -p $PACKNAME" >> $FULLLOGFILE
+    dh_make -i $copy -p $PACKNAME < debtmpfile >> $FULLLOGFILE
 fi
 
 #If the user has written a copyright file, we copy it in the debian directory
@@ -504,16 +527,17 @@ fi
 #In order to do that, we use the variables LIBNAMES (which contains the
 #libraries you want to include in the library package), HEADERNAMES (which 
 #contains the name of the header files you want to include in the library 
-#package) and BINARYNAMES (which contains the names of the binaries you want 
-#to include in the binary package). If HEADERNAMES is empty, we remove the part
+#package), BINARYNAMES (which contains the names of the binaries you want 
+#to include in the binary package) and INDNAMES (which contains the architecture
+#independant files). If HEADERNAMES is empty, we remove the part
 #of the control file that concern the package that will contains the header
 #files. Therefore, that package will not be created.
 
 if [ $LIBPACK == true ]
 then
 
-#Libraries will be put in `/usr/lib/<packagename>/` when the package will
-#be installed
+#Libraries will be put in `/usr/lib/LIBPACKAGENAME/` when the package is 
+#installed
     
     echo "rm -f debian/$LIBPACKAGENAME.install" >> $FULLLOGFILE
     rm -f debian/$LIBPACKAGENAME.install
@@ -529,8 +553,8 @@ debian/$LIBPACKAGENAME.install : $LIBNAMES." | tee -a $LOGFILE $FULLLOGFILE
     fi
 
 
-#Headers will be put in `/usr/include/<packagename>/` when the package will
-#be installed.
+#Headers will be put in `/usr/include/LIBPACKAGENAME/` when the package is 
+#installed.
 
     if [ ! -z "$HEADERNAMES" ]
     then
@@ -550,9 +574,10 @@ debian/$LIBPACKAGENAME-dev.install : $HEADERNAMES." | tee -a $LOGFILE \
     fi
 fi
 
+#Binaries will be put in `/usr/bin/` when the package is installed
+
 if [ $BINPACK == true ] 
 then
-    
     for binary in $BINARYNAMES
     do
 	echo "$binary usr/bin" >> debian/$BINPACKAGENAME.install
@@ -562,8 +587,24 @@ then
 debian/$BINPACKAGENAME.install : $BINARYNAMES." | tee -a $LOGFILE $FULLLOGFILE
 
     echo "usr/bin" >> debian/$BINPACKAGENAME.dirs
-    echo "usr/share" >> debian/$BINPACKAGENAME.dirs
     echo "Added /usr/bin to debian/$BINPACKAGENAME.dirs." | tee -a $LOGFILE \
+	$FULLLOGFILE
+fi
+
+#Architecture independant files will be put in `/usr/share/INDPACKAGENAME/ 
+#when the package is installed.
+
+if [ $INDPACK == true ]
+then
+    for indep in $INDNAMES
+    do
+	echo "$indep usr/share/$INDPACKAGENAME" >> \
+	    debian/$INDPACKAGENAME.install
+    done;
+    echo "Added architecture independant files that will be included in \
+debian/$INDPACKAGENAME.install : $INDNAMES." | tee -a $LOGFILE $FULLLOGFILE
+    echo "usr/share" >> debian/$INDPACKAGENAME.dirs
+    echo "Added /usr/share to debian/$INDPACKAGENAME.dirs." | tee -a $LOGFILE \
 	$FULLLOGFILE
 fi
 
@@ -573,35 +614,74 @@ fi
 #wants to build both type of packages. This option creates a control file that
 #contains information for library packages only.
 
-if [ $LIBPACK == true ] && [ $BINPACK == true ]
+if [ $LIBPACK == true ]
 then 
-    env echo -e -n "\n" >> debian/control
-    echo "Package: $BINPACKAGENAME" >> debian/control
-    echo "Architecture: any" >> debian/control
-
-    if [ ! -z "$PACKAGEDEPENDS" ]
-    then
-	echo 'Depends: ${shlibs:Depends}, ${misc:Depends}, '\
-"$PACKAGEDEPENDS" >> debian/control
-    else
+    if [ $BINPACK == true ]
+    then	
+	env echo -e -n "\n" >> debian/control
+	echo "Package: $BINPACKAGENAME" >> debian/control
+	echo "Architecture: any" >> debian/control
 	echo 'Depends: ${shlibs:Depends}, ${misc:Depends}' >>debian/control
-    fi
-    echo 'Description: <insert up to 60 chars description>' >>debian/control
-    echo ' <insert long description, indented with spaces>' >>debian/control
+	echo 'Description: <insert up to 60 chars description>' >>debian/control
+	echo ' <insert long description, indented with spaces>' >>debian/control
 
-    echo "Added binary package description to debian/control file." \
-	| tee -a $LOGFILE $FULLLOGFILE
+	echo "Added binary package description to debian/control file." \
+	    | tee -a $LOGFILE $FULLLOGFILE
+    fi
+    if [ $INDPACK == true ]
+    then
+	env echo -e -n "\n" >> debian/control
+	echo "Package: $INDPACKAGENAME" >> debian/control
+	echo "Architecture: all" >> debian/control
+	echo 'Depends: ${misc:Depends}' >> debian/control
+	echo "Description: <insert up to 60 chars description>" \
+>> debian/control
+	echo " <insert long description, indented with spaces>" \
+>> debian/control
+
+	echo "Added arch-independant package description to debian/control \
+file." | tee -a $LOGFILE $FULLLOGFILE
+    fi
+elif [ $BINPACK == true ] && [ $INDPACK == true ] 
+then
+    env echo -e -n "\n" >> debian/control
+    echo "Package: $INDPACKAGENAME" >> debian/control
+    echo "Architecture: all" >> debian/control
+    echo 'Depends: ${misc:Depends}' >> debian/control
+    echo "Description: <insert up to 60 chars description>" >> debian/control
+    echo " <insert long description, indented with spaces>" >> debian/control
+
+    echo "Added arch-independant package description to debian/control \
+file." | tee -a $LOGFILE $FULLLOGFILE
 fi
 
 #Now, we have to add the dependencies of the packages, in the control file.
 
-if [ ! -z "$PACKAGEDEPENDS" ]
+if [ ! -z "$BINRUNDEPENDS" ]
 then
-    echo "perl -pi -e 's/^(Depends:.+)$/$1, $PACKAGEDEPENDS/' debian/control" \
->> $FULLLOGFILE
-    perl -pi -e 's/^(Depends:.+)$/$1, '"$PACKAGEDEPENDS/" debian/control 
-    echo "Added runtime dependencies to debian/control : $PACKAGEDEPENDS." \
-	| tee -a $LOGFILE $FULLLOGFILE
+    echo "perl -0777 -pi -e 's/(Package: $BINPACKAGENAME.*?Depends:.+?)\n/$1, \
+$BINRUNDEPENDS/s' debian/control" >> $FULLLOGFILE
+    perl -0777 -pi -e 's/(Package: '"$BINPACKAGENAME"'.*?Depends:.+?)\n/$1, '"$BINRUNDEPENDS\n/s" debian/control 
+    echo "Added binaries' runtime dependencies to debian/control :\
+ $BINRUNDEPENDS." | tee -a $LOGFILE $FULLLOGFILE
+fi
+
+if [ ! -z "$LIBRUNDEPENDS" ]
+then
+    echo "perl -0777 -pi -e 's/(Package: $LIBPACKAGENAME.*?Depends:.+?)\n/$1, \
+$LIBRUNDEPENDS/s' debian/control" >> $FULLLOGFILE
+    perl -0777 -pi -e 's/(Package: '"$LIBPACKAGENAME"'.*?Depends:.+?)\n/$1, '"$LIBRUNDEPENDS\n/s" debian/control 
+    echo "Added libraries' runtime dependencies to debian/control :\
+ $LIBRUNDEPENDS." | tee -a $LOGFILE $FULLLOGFILE
+fi
+
+if [ ! -z "$INDRUNDEPENDS" ]
+then
+    echo "perl -0777 -pi -e 's/(Package: $INDPACKAGENAME.*?Depends:.+?)\n/$1, \
+$INDRUNDEPENDS/s' debian/control" >> $FULLLOGFILE
+    perl -0777 -pi -e 's/(Package: '"$INDPACKAGENAME"'.*?Depends:.+?)\n/$1, '"$INDRUNDEPENDS\n/s" debian/control 
+    echo "Added arch-independant files' runtime dependencies to debian/control :\
+$INDRUNDEPENDS." | tee -a $LOGFILE $FULLLOGFILE
 fi
 
 if [ ! -z "$BUILDDEPENDS" ]
@@ -707,6 +787,8 @@ then
     rm -f "$LIBPACKAGENAME""_$VERSION.debian.tar.gz"
     echo "rm -f $BINPACKAGENAME""_$VERSION.debian.tar.gz" >> $FULLLOGFILE
     rm -f "$BINPACKAGENAME""_$VERSION.debian.tar.gz"
+    echo "rm -f $INDPACKAGENAME""_$VERSION.debian.tar.gz" >> $FULLLOGFILE
+    rm -f "$INDPACKAGENAME""_$VERSION.debian.tar.gz"
     echo "rm -f *.build *.changes" >> $FULLLOGFILE
     rm -f *.build *.changes
 fi

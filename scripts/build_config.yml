@@ -6,11 +6,11 @@
 # strongly recommended to fill out every field in this file to have a proper
 # package.
 
-# This example file is filled to build a binary package and library packages
-# named test, libtest and libtest-dev at the same time, built from the
-# same sources on an amd64 computer (the architecture of your processor doesn't
-# matter when using this script, it's just that the output packages will have
-# it at the end of their name).
+# This example file is filled to build a binary package, library packages and
+# an architecture independant package named test, libtest and libtest-dev at 
+# the same time, built from the same sources on an amd64 computer (the 
+# architecture of your processor doesn't matter when using this script, it's
+ #just that the output packages will have it at the end of their name).
 
 # Filling this configuration file
 #---
@@ -27,11 +27,16 @@
 
 # Desired name of the package containing binaries (can be left empty if you
 # are not building a binary package)
-BINPACKAGENAME	: test
+BINPACKAGENAME : test
 
 # Desired name of the packages containing libraries (can be left empty if you
 # are not building library packages)
-LIBPACKAGENAME	: libtest
+LIBPACKAGENAME : libtest
+
+# Desired name of the package containing architecture independant files (can
+# be left empty if you are not building an architecture independant package).
+# You can use the same name as in `BINPACKAGENAME` or `LIBPACKAGENAME`.
+INDPACKAGENAME : test-all
 
 # Program version
 VERSION : 2.3.7
@@ -81,11 +86,20 @@ PACKAGETYPE : s l
 # Accepted symbols are <, >, =, <= and >=.
 BUILDDEPENDS : libsdl2-dev libsdl2-2.0-0
 
-# The list of packages you need to have installed when using your program.
+# The list of packages you need to have installed when using your binaries.
 # You can specify version constraints as explained for `BUILDDEPENDS` field.
-PACKAGEDEPENDS :
+BINRUNDEPENDS :
   - libsdl2-2.0-0
   - perl-base (> 5.10)
+
+# The list of packages you need to have installed when using your libraries.
+# You can specify version constraints as explained for `BUILDDEPENDS` field.
+LIBRUNDEPENDS :
+
+# The list of packages you need to have installed when using your architecture
+# independant files.
+# You can specify version constraints as explained for `BUILDDEPENDS` field.
+INDRUNDEPENDS :
 
 # List all actions that you want to perform before starting the build procedure
 #. If you change an environment variable, or a system configuration, you 
@@ -122,6 +136,9 @@ HEADERNAMES :
   - lib/*.h
   - interfaces/*.h
 
+# List the architecture independant files you want to include in your
+# architecture independant package.
+INDNAMES : 
 
 # Miscellaneous
 #--
@@ -140,8 +157,13 @@ BINPACKAGEDESCFILE : test.desc
 
 # Path to the description file of the library packages. Same as
 # `BINPACKAGEDESCFILE` but for the library packages (in this example, for
-# `libtest_2.3.7_amd64.deb` and `libtest-dev_2.3.7_amd64.deb`
+# `libtest_2.3.7_amd64.deb` and `libtest-dev_2.3.7_amd64.deb`)
 LIBPACKAGEDESCFILE : libtest.desc
+
+# Path to the description file of the architecture independant package. Same as
+# `BINPACKAGEDESCFILE` but for the architecture independant package
+# (in this example, for `test-all_2.3.7_all.deb`).
+INDPACKAGEDESCFILE : libtest-all.desc
 
 # The name of this package's maintainer (it should be yours).
 DEBFULLNAME : John Doe
