@@ -82,7 +82,7 @@ leaveunclean=0
 while getopts "c:d:lh" opt; do
     case $opt in
 	h)
-	    env echo -e "Usage: `basename $0` [OPTIONS]";
+	    echo "Usage: `basename $0` [OPTIONS]";
 	    echo "If you've not obtained this script via the debian package \
 then the files" 
 	    echo "config_parser.pl and correct_lintian.pl must be in the same \
@@ -90,24 +90,24 @@ directory where"
 	    echo "you'll execute this script."
 	    echo "Make sure build_config.yml is correctly filled."
 	    echo "Options:"
-	    env echo -e "\t-l: Don't clean files created during the build of \
+	    env echo -e "  -l\t\t\tDon't clean files created during the build of \
 the packages."
-	    env echo -e "\t-h: print this help."
-	    env echo -e "\t-c <config_file> : Allows you to indicate where your\
+	    env echo -e "  -h\t\t\tPrint this help."
+	    env echo -e "  -c <config_file>\tAllows you to indicate where your\
  configuration file"
-	    env echo -e "\t                   is located. If you omit this\
+	    env echo -e "\t\t\tis located. If you omit this\
  option we will assume"
-	    env echo -e "\t                   that it's located in the \
+	    env echo -e "\t\t\tthat it's located in the \
 directory where you've"
-	    env echo -e "\t                   lauched this script and \
+	    env echo -e "\t\t\tlauched this script and \
 its name is build_config.yml"
-	    env echo -e "\t-d <makefile_dir>: Path leading to the directory \
+	    env echo -e "  -d <makefile_dir>\tPath leading to the directory \
 where your makefile is."
-	    env echo -e "\t                   If you omit this option, then we \
+	    env echo -e "\t\t\tIf you omit this option, then we \
 will assume that the"
-	    env echo -e "\t                   makefile is located in the \
+	    env echo -e "\t\t\tmakefile is located in the \
 the directory where you"
-	    env echo -e "\t                   execute this script."
+	    env echo -e "\t\t\texecute this script."
 	    exit 0;;
 	l)
 	    leaveunclean=1;;
@@ -116,7 +116,7 @@ the directory where you"
 	d)
 	    MAKEFILEDIRECTORY="$OPTARG";;
 	\?)
-	    echo "Invalid option: -$opt" >&2
+	    echo "Usage: `basename $0` [OPTIONS]";
 	    exit 1;;
     esac
 done
