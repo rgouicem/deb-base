@@ -33,7 +33,10 @@ my$buildfilename = shift;
 
 # First of all, we must open this build log and get the warnings and errors
 # lintian detected. This part of the log will now be found in `$lintianLog`
-open BUILDLOG, $buildfilename;
+if (! open BUILDLOG, $buildfilename) {
+    print "Couldn't open $buildfilename";
+    die ($!);
+}
 $/ = undef;
 my$log = <BUILDLOG>;
 
@@ -43,24 +46,19 @@ my$lintianLog = $1;
 # Now, we open the files we are going to edit and make a copy of them in memory
 
 # Opening debian/control
-open CONTROL, "debian/control" or die($!);
+if (! open CONTROL, "debian/control") {
+    print "Couldn't open debian/control";
+    die($!);
+}
 my$control = <CONTROL>;
 close CONTROL;
 # Opening debian/copyright
-open COPYRIGHT, "debian/copyright" or die($!);
+if (! open COPYRIGHT, "debian/copyright") {
+    print "Couldn't open debian/copyright";
+    die($!);
+}
 my$copyright = <COPYRIGHT>;
 close COPYRIGHT;
-
-# We also open a log file, if specified in the environment variable `LOGFILE`.
-# In this file, we are going to write down every change that was made, so that
-# the user can keep track of what this script has done. A timestamp is written
-# at the beginning of the file, along with a little explanation of what this
-# file is.
-#my$do_log = open LOG, ">", "$ENV{LOGFILE}";
-#if($do_log) {
-#    my$date = scalar localtime(time);
-#    print LOG "correct_lintian.pl log file.\nThis log lists edits made by the script and warnings/errors that happened during debian package building. You may want to correct them and launch a new build.\n\nTimestamp: $date\n\n";
-#}
 
 # File edition
 #-------------
@@ -163,9 +161,6 @@ print COPYRIGHT $copyright;
 close CONTROL;
 close COPYRIGHT;
 close BUILDLOG;
-#close LOG if $do_log;
 
-# And a little message to let the user know that the script is done and where
-# to find the log if there is one.
+# And a little message to let the user know that the script is done
 print "Configuration files edited !\n";
-#print "You can find what has been changed in $ENV{LOGFILE}\n" if $do_log;

@@ -59,5 +59,6 @@
   ".wsc":         {"name": "vbscript", "symbol": "'"},
   ".wsf":         {"name": "vbscript", "symbol": "'"},
   ".vhdl":        {"name": "vhdl", "symbol": "--"},
-  ".yml":	  {"name": "ini", "symbol": "#"}
+  ".yml":	  {"name": "ini", "symbol": "#"},
+  "buildeb":          {"name": "bash", "symbol": "#"}
 }

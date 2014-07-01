@@ -6,17 +6,18 @@
 # strongly recommended to fill out every field in this file to have a proper
 # package.
 
-# This example file is filled to build a binary package and library packages
-# named test, libtest and libtest-dev at the same time, built from the
-# same sources on an amd64 computer (the architecture of your processor doesn't
-# matter when using this script, it's just that the output packages will have
-# it at the end of their name).
+# This example file is filled to build a binary package, library packages and
+# an architecture independant package named test, libtest and libtest-dev at 
+# the same time, built from the same sources on an amd64 computer (the 
+# architecture of your processor doesn't matter when using this script, it's
+ #just that the output packages will have it at the end of their name).
 
 # Filling this configuration file
 #---
 # Before filling this configuration file, there are some general things
 # you should know.
-# - Paths are relative to the one specified in the `DIRECTORYNAME` field
+# - Paths are relative to the directory containing the makefile that builds
+#your project
 # - When asked for a list, you can put each item on the same line, separated
 # by a space, or you can write each item on a line beginning with a hyphen
 # '-', followed by a space and the item (see the examples in this file)
@@ -24,6 +25,7 @@
 # Program informations
 #---
 
+<<<<<<< HEAD
 # Name of the directory containing source files. This path must be relative
 # to where the script is run from.
 DIRECTORYNAME	: ../libsnow-1.4.2
@@ -35,6 +37,20 @@ BINPACKAGENAME	: snow
 # Desired name of the packages containing libraries (can be left empty if you
 # are not building library packages)
 LIBPACKAGENAME	: libsnow
+=======
+# Desired name of the package containing binaries (can be left empty if you
+# are not building a binary package)
+BINPACKAGENAME : test
+
+# Desired name of the packages containing libraries (can be left empty if you
+# are not building library packages)
+LIBPACKAGENAME : libtest
+
+# Desired name of the package containing architecture independant files (can
+# be left empty if you are not building an architecture independant package).
+# You can use the same name as in `BINPACKAGENAME` or `LIBPACKAGENAME`.
+INDPACKAGENAME : test-all
+>>>>>>> 739b9b9032fff588e355b27c797cfd8daeeb0b97
 
 # Program version
 VERSION : 1.4.2
@@ -50,16 +66,16 @@ VERSION : 1.4.2
 # - `apache`
 # - `bsd`
 # - `mit`
-# - a path leading to your own copyright file. If using your own file
+# - a path leading to your own copyright file.
 # If left empty, the script will search for files named `COPYING` or `LICENSE`
-# in the `DIRECTORYNAME` folder to use them. If those files are not found, an
+# in the directory where your makefile is. If those files are not found, an
 # empty copyright file will be put in your package
 COPYRIGHT : 
 
 # Developers' names, email addresses and years of activity on this project.
 # Must be filled this way, and this way only to have a proper copyright
 # file : `years name <email>`. If left empty, the script will search for a file
-# named `AUTHORS` in the `DIRECTORYNAME` folder to fill the copyright files.
+# named `AUTHORS` in the directory containing the makefile of your project.
 # If you are not using a generated copyright file
 # (ie. the field `COPYRIGHT` is a path to your own copyright file or left
 # blank), you can leave this field empty.
@@ -82,17 +98,48 @@ PACKAGETYPE : s l
 # Accepted symbols are <, >, =, <= and >=.
 BUILDDEPENDS : 
 
-# The list of packages you need to have installed when using your program.
+# The list of packages you need to have installed when using your binaries.
 # You can specify version constraints as explained for `BUILDDEPENDS` field.
+<<<<<<< HEAD
 PACKAGEDEPENDS :
+=======
+BINRUNDEPENDS :
+  - libsdl2-2.0-0
+  - perl-base (> 5.10)
+
+# The list of packages you need to have installed when using your libraries.
+# You can specify version constraints as explained for `BUILDDEPENDS` field.
+LIBRUNDEPENDS :
+
+# The list of packages you need to have installed when using your architecture
+# independant files.
+# You can specify version constraints as explained for `BUILDDEPENDS` field.
+INDRUNDEPENDS :
+
+# List all actions that you want to perform before starting the build procedure
+#. If you change an environment variable, or a system configuration, you 
+# <strong>have</strong> to restore the system state like it was before in the
+# `AFTERBUILD` section of this configuration file.
+BEFOREBUILD :
+  - sudo update-alternatives --set yacc /usr/bin/byacc
+
+# List all actions that you want to perform after the building procedure is 
+# over. You <strong>have</strong> to restore what you have changed in 
+# `BEFOREBUILD` that could affect other programs.
+AFTERBUILD :
+  - sudo update-alternatives --set yacc /usr/bin/bison.yacc
+
+# Option you want to pass for ./configure
+CONFIGUREFLAGS :
+>>>>>>> 739b9b9032fff588e355b27c797cfd8daeeb0b97
 
 # Files to include
 #-----
 
 # In this section, you can use filename expansion to avoid listing a lot of
 # files in the same directory like headers or libraries.
-# All paths must be relative to the directory specified in `DIRECTORYNAME`
-# field previously.
+# All paths must be relative to the directory where the makefile of your
+# project is located. 
 
 # List the binaries you want to include in your binary package
 BINARYNAMES : lib/cami2gspn lib/cami2smart lib/snow
@@ -105,6 +152,9 @@ HEADERNAMES :
   - lib/*.h
   - interfaces/*.h
 
+# List the architecture independant files you want to include in your
+# architecture independant package.
+INDNAMES : 
 
 # Miscellaneous
 #--
@@ -112,8 +162,7 @@ HEADERNAMES :
 # The following values are used to have a "nice" package, with someone to call
 # if there is a problem, descriptions, and so on. Therefore, those are not
 # mandatory, but <strong>strongly recommended</strong>.
-# All paths must be relative to the directory name specified in `DIRECTORYNAME`
-# field previously.
+# All paths must be relative to the directory containing your makefile
 
 # Path to the description file of the binary package. This description will be
 # useful for the user if he wants to know what your package does before
@@ -124,8 +173,18 @@ BINPACKAGEDESCFILE :
 
 # Path to the description file of the library packages. Same as
 # `BINPACKAGEDESCFILE` but for the library packages (in this example, for
+<<<<<<< HEAD
 # `libtest_2.3.7_amd64.deb` and `libtest-dev_2.3.7_amd64.deb`
 LIBPACKAGEDESCFILE : 
+=======
+# `libtest_2.3.7_amd64.deb` and `libtest-dev_2.3.7_amd64.deb`)
+LIBPACKAGEDESCFILE : libtest.desc
+>>>>>>> 739b9b9032fff588e355b27c797cfd8daeeb0b97
+
+# Path to the description file of the architecture independant package. Same as
+# `BINPACKAGEDESCFILE` but for the architecture independant package
+# (in this example, for `test-all_2.3.7_all.deb`).
+INDPACKAGEDESCFILE : libtest-all.desc
 
 # The name of this package's maintainer (it should be yours).
 DEBFULLNAME : Redha Gouicem
