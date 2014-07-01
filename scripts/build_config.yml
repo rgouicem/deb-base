@@ -25,19 +25,6 @@
 # Program informations
 #---
 
-<<<<<<< HEAD
-# Name of the directory containing source files. This path must be relative
-# to where the script is run from.
-DIRECTORYNAME	: ../libsnow-1.4.2
-
-# Desired name of the package containing binaries (can be left empty if you
-# are not building a binary package)
-BINPACKAGENAME	: snow
-
-# Desired name of the packages containing libraries (can be left empty if you
-# are not building library packages)
-LIBPACKAGENAME	: libsnow
-=======
 # Desired name of the package containing binaries (can be left empty if you
 # are not building a binary package)
 BINPACKAGENAME : test
@@ -50,10 +37,9 @@ LIBPACKAGENAME : libtest
 # be left empty if you are not building an architecture independant package).
 # You can use the same name as in `BINPACKAGENAME` or `LIBPACKAGENAME`.
 INDPACKAGENAME : test-all
->>>>>>> 739b9b9032fff588e355b27c797cfd8daeeb0b97
 
 # Program version
-VERSION : 1.4.2
+VERSION : 2.3.7
 
 # Copyright : you must choose from one of these values :
 # - `gpl`
@@ -70,7 +56,7 @@ VERSION : 1.4.2
 # If left empty, the script will search for files named `COPYING` or `LICENSE`
 # in the directory where your makefile is. If those files are not found, an
 # empty copyright file will be put in your package
-COPYRIGHT : 
+COPYRIGHT : gpl
 
 # Developers' names, email addresses and years of activity on this project.
 # Must be filled this way, and this way only to have a proper copyright
@@ -80,6 +66,8 @@ COPYRIGHT :
 # (ie. the field `COPYRIGHT` is a path to your own copyright file or left
 # blank), you can leave this field empty.
 DEVS :
+  - 2012-2014 Jane Doe <jane@doe.com>
+  - 2010-2012 2013-2014 Will Smith <will@smith.com>
 
 # The type of package you want to build :
 #- `s` : build a binary package (eg. `test_2.3.7_amd64.deb`)
@@ -96,13 +84,10 @@ PACKAGETYPE : s l
 # (ie. when you call make).
 # You can specify some version constraints for these packages.
 # Accepted symbols are <, >, =, <= and >=.
-BUILDDEPENDS : 
+BUILDDEPENDS : libsdl2-dev libsdl2-2.0-0
 
 # The list of packages you need to have installed when using your binaries.
 # You can specify version constraints as explained for `BUILDDEPENDS` field.
-<<<<<<< HEAD
-PACKAGEDEPENDS :
-=======
 BINRUNDEPENDS :
   - libsdl2-2.0-0
   - perl-base (> 5.10)
@@ -131,7 +116,6 @@ AFTERBUILD :
 
 # Option you want to pass for ./configure
 CONFIGUREFLAGS :
->>>>>>> 739b9b9032fff588e355b27c797cfd8daeeb0b97
 
 # Files to include
 #-----
@@ -142,10 +126,10 @@ CONFIGUREFLAGS :
 # project is located. 
 
 # List the binaries you want to include in your binary package
-BINARYNAMES : lib/cami2gspn lib/cami2smart lib/snow
+BINARYNAMES : bin/testbin1 bin/testbinary
 
 # List the libraries you want to include in your library package
-LIBNAMES : lib/libPNet.a
+LIBNAMES : lib/libTest.a
 
 # List the headers you want to include in the -dev package
 HEADERNAMES :
@@ -169,17 +153,12 @@ INDNAMES :
 # installing it, using the `dpkg -I` command, or a graphical package manager.
 # You will find how to write this file in the README.md document provided with
 # the scripts.
-BINPACKAGEDESCFILE : 
+BINPACKAGEDESCFILE : test.desc
 
 # Path to the description file of the library packages. Same as
 # `BINPACKAGEDESCFILE` but for the library packages (in this example, for
-<<<<<<< HEAD
-# `libtest_2.3.7_amd64.deb` and `libtest-dev_2.3.7_amd64.deb`
-LIBPACKAGEDESCFILE : 
-=======
 # `libtest_2.3.7_amd64.deb` and `libtest-dev_2.3.7_amd64.deb`)
 LIBPACKAGEDESCFILE : libtest.desc
->>>>>>> 739b9b9032fff588e355b27c797cfd8daeeb0b97
 
 # Path to the description file of the architecture independant package. Same as
 # `BINPACKAGEDESCFILE` but for the architecture independant package
@@ -187,10 +166,11 @@ LIBPACKAGEDESCFILE : libtest.desc
 INDPACKAGEDESCFILE : libtest-all.desc
 
 # The name of this package's maintainer (it should be yours).
-DEBFULLNAME : Redha Gouicem
+DEBFULLNAME : John Doe
 
 # The e-mail address of the maintainer of this package
-DEBEMAIL : redha.gouicem@gmail.com
+DEBEMAIL : john@doe.com
 
 # Homepage's URL you want to specify in your package
-HOMEPAGE : https://github.com/CosyVerif/deb-libsnow
+HOMEPAGE : http://www.john.doe
+
