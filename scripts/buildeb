@@ -91,8 +91,8 @@ directory where"
 	    echo "you'll execute this script."
 	    echo "Make sure build_config.yml is correctly filled."
 	    echo "Options:"
-	    env echo -e "  -l\t\t\tDon't clean files created during the build of \
-the\n\t\t\tpackages."
+	    env echo -e "  -l\t\t\tDon't clean files created during the build \
+of the\n\t\t\tpackages."
 	    env echo -e "  -h\t\t\tPrint this help."
 	    env echo -e "  -c <config_file>\tAllows you to indicate where your\
  configuration file"
@@ -118,12 +118,12 @@ the directory where you"
 	d)
 	    MAKEFILEDIR="$OPTARG";;
 	g)
-	    if [ -f "/usr/share/buildeb/build_config.yml" ]; then
-		cp /usr/share/buildeb/build_config.yml .
+	    if [ -f "/usr/share/buildeb-all/build_config.yml" ]; then
+		cp /usr/share/buildeb-all/build_config.yml .
 		echo "build_config.yml successfully generated !"
 		exit 0;
 	    else
-		echo "Couldn't find build_config.yml in /usr/share/buildeb."
+		echo "Couldn't find build_config.yml in /usr/share/buildeb-all."
 		exit 1;
 	    fi
 	    ;;
@@ -727,6 +727,12 @@ fi
 
 env echo -e "\nexport DH_VERBOSE=1\n" >> debian/rules
 
+#We tell debuild not to use `dh_auto_install` because it makes errors when
+#building multiple packages at the same time.
+
+env echo -e "\noverride_dh_auto_install:" >> debian/rules
+env echo -e "\t\n" >> debian/rules
+
 #<a id='libsource'>Creation of the source package</a>
 #----------------------------------------------------
 
@@ -743,6 +749,10 @@ echo "Building source package..." | tee -a $LOGFILE $FULLLOGFILE
 echo "debuild -S -uc -us" >> $FULLLOGFILE
 debuild -S -uc -us >> $FULLLOGFILE
 
+if [ $? -ne 0 ]; then
+    echo "Source package building failed." | tee -a $LOGFILE $FULLLOGFILE
+    exit 6
+fi
 echo "Source package successfully built." | tee -a $LOGFILE $FULLLOGFILE
 echo "Running correction to lintian errors..." | tee -a $LOGFILE \
     $FULLLOGFILE
@@ -771,6 +781,10 @@ echo "Lintian errors corrected." | tee -a $LOGFILE $FULLLOGFILE
 echo "Building debian packages..." | tee -a $LOGFILE $FULLLOGFILE
 echo "debuild -us -uc" >> $FULLLOGFILE
 debuild -us -uc >> $FULLLOGFILE
+if [ $? -ne 0 ]; then
+    echo "Package building failed." | tee -a $LOGFILE $FULLLOGFILE
+    exit 6
+fi
 echo "Debian packages successfully built." | tee -a $LOGFILE $FULLLOGFILE
 
 #We now have to remove the debian directory, the tarballs, and some files
