@@ -80,7 +80,8 @@
 #the makefile is in the directory where you'll launch this script.
 
 leaveunclean=0
-while getopts "c:d:lgh" opt; do
+quitbeforebuild=0
+while getopts "c:d:lgth" opt; do
     case $opt in
 	h)
 	    echo "Usage: `basename $0` [OPTIONS]";
@@ -93,7 +94,6 @@ directory where"
 	    echo "Options:"
 	    env echo -e "  -l\t\t\tDon't clean files created during the build \
 of the\n\t\t\tpackages."
-	    env echo -e "  -h\t\t\tPrint this help."
 	    env echo -e "  -c <config_file>\tAllows you to indicate where your\
  configuration file"
 	    env echo -e "\t\t\tis located. If you omit this\
@@ -110,6 +110,10 @@ will assume that the"
 the directory where you"
 	    env echo -e "\t\t\texecute this script."
 	    env echo -e "  -g\t\t\tGenerate a configuration file template."
+	    env echo -e "  -t\t\t\tStops the script before building the \
+packages. You can\n\t\t\tedit files in the debian subdirectory located where \
+your\n\t\t\tMakefile is."
+	    env echo -e "  -h\t\t\tPrint this help."
 	    exit 0;;
 	l)
 	    leaveunclean=1;;
@@ -127,6 +131,8 @@ the directory where you"
 		exit 1;
 	    fi
 	    ;;
+	t)
+	    quitbeforebuild=1;;
 	\?)
 	    echo "Usage: `basename $0` [OPTIONS]";
 	    exit 1;;
@@ -169,8 +175,8 @@ fi
 #Now, we're looking for the script config_parser.pl, that will read the 
 #configuration file and produce an output like : "export NAME=VALUE", which can
 #be evaluated by the shell interpreter. This file can be located in two places.
-#It can either be in the current directory or in /usr/bin (It can be the case if
-#the user has installed the package contening this script). 
+#It can either be in the current directory or in /usr/share/buildeb-all (It can
+#be the case if the user has installed the package contening this script). 
 
 if [ ! -f "config_parser.pl" ] && \
     [ ! -f "/usr/share/buildeb-all/config_parser" ] 
@@ -181,9 +187,28 @@ else
     echo "config_parser.pl found !"
     if [ -f "config_parser.pl" ]
     then
-	PARSER="./config_parser.pl";
+	PARSER=`readlink -f ./config_parser.pl`
     else
 	PARSER="/usr/share/buildeb-all/config_parser";
+    fi
+fi
+
+#Now we're looking for the script correct_lintian.pl that will correct common
+#mistakes done when building Debian packages. We won't quit if the file is 
+# missing because it is not essential when building a package.
+
+if [ ! -f "correct_lintian.pl" ] && \
+    [ ! -f "/usr/share/buildeb-all/correct_lintian" ] 
+then
+    echo "correct_lintian.pl is missing ! You should install the buildeb \
+package or get this script to ensure you are building nice Debian packages." >&2
+else
+    echo "correct_lintian.pl found !"
+    if [ -f "correct_lintian.pl" ]
+    then
+	LINTIAN=`readlink -f ./correct_lintian.pl`
+    else
+	LINTIAN="/usr/share/buildeb-all/correct_lintian.pl"
     fi
 fi
 
@@ -262,9 +287,7 @@ fi
 #We create a log file to keep track of what has been done and we redirect
 #standard output to another log to keep the console clean and readable.
 
-cd $MAKEFILEDIR/..
-LOGDIR=`pwd`
-cd $MAKEFILEDIR
+LOGDIR=`readlink -f $MAKEFILEDIR/..`
 LOGFILE=$LOGDIR/buildeb.log
 FULLLOGFILE=$LOGDIR/buildeb_full.log
 
@@ -281,8 +304,17 @@ env echo -e "Timestamp :     $timestamp\n" | tee -a $LOGFILE $FULLLOGFILE
 #-------------------------------------------------------
 
 #We execute commands specified in the configuration file in `BEFOREBUILD` 
-#before doing anything build-related.
+#before doing anything build-related and get the version number with the
+#current timestamp if necessary.
 
+if [ -z "$VERSION" ]; then
+    echo "Version not specified. We will use the current timestamp." | \
+	tee -a $LOGFILE $FULLLOGFILE
+    echo "date +%s" >> $FULLLOGFILE
+    VERSION=`date +%s`
+fi
+
+echo "Executing before build commands..." | tee -a $LOGFILE $FULLLOGFILE
 cd $MAKEFILEDIR
 IFS=';' read -a commands <<< "$BEFOREBUILD"
 for cmd in "${commands[@]}"
@@ -290,7 +322,7 @@ do
     echo $cmd | tee -a $LOGFILE $FULLLOGFILE
     eval "$cmd"
 done
-
+echo "Before build commands executed..." | tee -a $LOGFILE $FULLLOGFILE
 
 #<a id='tarball'>Creating Tarballs</a>
 #--------------------------------------
@@ -451,6 +483,10 @@ elif [ $INDPACK == true ]
 then
     echo "dh_make -i $copy -p $PACKNAME" >> $FULLLOGFILE
     dh_make -i $copy -p $PACKNAME < debtmpfile >> $FULLLOGFILE
+fi
+if [ $? -ne 0 ]; then
+    echo "dh_make failed. Check your version number and your package name";
+    exit 7
 fi
 
 #If the user has written a copyright file, we copy it in the debian directory
@@ -756,22 +792,10 @@ if [ $? -ne 0 ]; then
     exit 6
 fi
 echo "Source package successfully built." | tee -a $LOGFILE $FULLLOGFILE
-echo "Running correction to lintian errors..." | tee -a $LOGFILE \
-    $FULLLOGFILE
 
-if [ -f "$CURR/correct_lintian.pl" ]
-then
-    echo "$CURR/correct_lintian.pl $MAKEFILEDIR/../$PACKNAME""-1_source.build" >>\
- $FULLLOGFILE
-    $CURR/correct_lintian.pl "$MAKEFILEDIR/../$PACKNAME""-1_source.build" >> \
-$FULLLOGFILE
-elif [ -f "/usr/share/buildeb-all/correct_lintian" ] 
-then
-    echo "/usr/share/buildeb-all/correct_lintian \
-$MAKEFILEDIR/../$PACKNAME""-1_source.build" >> $FULLLOGFILE
-    /usr/share/buildeb-all/correct_lintian \
-	"$MAKEFILEDIR/../$PACKNAME""-1_source.build" >> $FULLLOGFILE
-fi
+echo "Running correction to lintian errors..." | tee -a $LOGFILE $FULLLOGFILE
+echo "$LINTIAN $MAKEFILEDIR/../$PACKNAME""-1_source.build" >> $FULLLOGFILE
+$LINTIAN "$MAKEFILEDIR/../$PACKNAME""-1_source.build" >> $FULLLOGFILE
 echo "Lintian errors corrected." | tee -a $LOGFILE $FULLLOGFILE
    
 #<a id='libbuild'>Building the package</a>
@@ -780,23 +804,46 @@ echo "Lintian errors corrected." | tee -a $LOGFILE $FULLLOGFILE
 #Now, we can finally build the package. _debuild_ does pretty much all the work.
 #-us and -uc options means that we don't sign the packages.
 
-echo "Building debian packages..." | tee -a $LOGFILE $FULLLOGFILE
-echo "debuild -us -uc" >> $FULLLOGFILE
-debuild -us -uc >> $FULLLOGFILE
-if [ $? -ne 0 ]; then
-    echo "Package building failed." | tee -a $LOGFILE $FULLLOGFILE
-    exit 6
-fi
-echo "Debian packages successfully built." | tee -a $LOGFILE $FULLLOGFILE
+echo "rm -f ../$LIBPACKAGENAME""_$VERSION.debian.tar.gz" >> $FULLLOGFILE
+rm -f "../$LIBPACKAGENAME""_$VERSION.debian.tar.gz"
+echo "rm -f ../$BINPACKAGENAME""_$VERSION.debian.tar.gz" >> $FULLLOGFILE
+rm -f "../$BINPACKAGENAME""_$VERSION.debian.tar.gz"
+echo "rm -f ../$INDPACKAGENAME""_$VERSION.debian.tar.gz" >> $FULLLOGFILE
+rm -f "../$INDPACKAGENAME""_$VERSION.debian.tar.gz"
+echo "rm -f ../*.build ../*.changes" >> $FULLLOGFILE
+rm -f ../*.build ../*.changes
+if [ $quitbeforebuild -eq 1 ]; then
+    echo "rm -f ../*.debian.tar.gz" >> $FULLLOGFILE
+    rm -f ../*.debian.tar.gz
+    echo "rm -f ../*.dsc" >> $FULLLOGFILE
+    rm -f ../*.dsc
+    echo "You can now edit the configuration files located in \
+$MAKEFILEDIR/debian and build your packages using 'debuild'. Check debuild's \
+manpage for more information." | tee -a $LOGFILE $FULLLOGFILE
 
+else
+    echo "Building debian packages..." | tee -a $LOGFILE $FULLLOGFILE
+    echo "debuild -us -uc" >> $FULLLOGFILE
+    debuild -us -uc >> $FULLLOGFILE
+    if [ $? -ne 0 ]; then
+	echo "Package building failed." | tee -a $LOGFILE $FULLLOGFILE
+	exit 6
+    fi
+    echo "Debian packages successfully built." | tee -a $LOGFILE $FULLLOGFILE
+fi
+    
 #We now have to remove the debian directory, the tarballs, and some files
 #created by _debuild_.
 
 if [ $leaveunclean -eq 0 ]
 then
     echo "Cleaning directory..." | tee -a $LOGFILE $FULLLOGFILE
-    echo "rm -rf debian/ && cd .." >> $FULLLOGFILE
-    rm -rf debian/ && cd ..
+    if [ $quitbeforebuild -ne 1 ]; then
+	echo "rm -rf debian/ && cd .." >> $FULLLOGFILE
+	rm -rf debian/
+    fi
+    echo "cd `readlink -f $MAKEFILEDIR/..`" >> $FULLLOGFILE
+    cd $MAKEFILEDIR/..
     echo "rm -f $TARBALL"  >> $FULLLOGFILE
     rm -f "$TARBALL"
     echo "rm -f $LIBPACKAGENAME""_$VERSION.debian.tar.gz" >> $FULLLOGFILE
@@ -815,6 +862,7 @@ fi
 #We execute commands specified in the configuration file in the field AFTERBUILD
 
 cd $MAKEFILEDIR
+echo "Executing after build commands..." | tee -a $LOGFILE $FULLLOGFILE
 IFS=';' read -a commands <<< "$AFTERBUILD"
 for cmd in "${commands[@]}"
 do
@@ -822,8 +870,9 @@ do
     eval "$cmd"
 done
 
-env echo -e "\nYou can now find your debian packages and logs in \
-$LOGDIR. buildeb.log is the same as the previous output, and \
-buildeb_full.log is a complete output of every program called by \
-buildeb (compilation, package building operations, etc...)." \
-    | tee -a $LOGFILE $FULLLOGFILE
+echo "After build commands executed." | tee -a $LOGFILE $FULLLOGFILE
+
+env echo -e "\nYou can now find your debian packages and logs in $LOGDIR. \
+buildeb.log is the same as the previous output, and buildeb_full.log is a \
+complete output of every program called by buildeb (compilation, package \
+building operations, etc...)." | tee -a $LOGFILE $FULLLOGFILE

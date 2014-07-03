@@ -66,15 +66,13 @@ $res=~s/ (?=[^\d\(\s])/, /g, $1;
 $config =~ s/INDRUNDEPENDS=\"(.*?)\";/INDRUNDEPENDS=\"$res\";/;
 
 #Checking version
-$config =~ /VERSION=\"(.*?)\";/;
-exit 4 if ($1 eq "");
+#$config =~ /VERSION=\"(.*?)\";/;
+#exit 4 if ($1 eq "");
 
 #Checking package type
 $config =~ /PACKAGETYPE=\"(.*?)\";/;
 exit 2 if ($1 eq "");
 my@types=split / /, $1;
-#exit 3 if ($types[0] ne "s" && $types[0] ne "l");
-#exit 3 if (($types[1] ne "") && ($types[1] ne "s") && ($types[1] ne "l"));
 foreach my$t (@types) {
     exit 3 if ($t ne "s" && $t ne "l" && $t ne "i");
 }

@@ -38,7 +38,11 @@ LIBPACKAGENAME : libtest
 # You can use the same name as in `BINPACKAGENAME` or `LIBPACKAGENAME`.
 INDPACKAGENAME : test-all
 
-# Program version
+# Program version. If left empty, the script will use the timestamp at the time
+# of the package building. If filled, you must make sure to increment the
+# version each time you build a package because you cannot upload to the
+# repository a package which version is not strictly greater than the one
+# currently available in the repository.
 VERSION : 2.3.7
 
 # Copyright : you must choose from one of these values :
