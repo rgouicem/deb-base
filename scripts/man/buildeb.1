@@ -1,0 +1,48 @@
+.TH BUILDEB 1
+.SH NAME
+buildeb \- Debian package building assistant
+.SH SYNOPSYS
+.B buildeb
+[\fB\-g\fR]
+[\fB\-t\fR]
+[\fB\-l\fR]
+[\fB\-c\fR \fIfile\fR]
+[\fB\-d\fR \fIdirectory\fR]
+.SH DESCRIPTION
+.B buildeb
+helps you build Debian package easily.
+The only thing you need to do if fill a configuration file that can be obtained using the \fB\-g\fR option and run \fBbuildeb\fR.
+.SH OPTIONS
+.TP
+.B \-g
+Generates a configuration file template named \fIbuild_config.yml\fR in the working directory.
+.TP
+.B \-t
+Stops the package building process just before building the packages.
+This way, you are free to edit the configuration files located in the subdirectory debian/ of your source directory.
+You can then use \fBdebuild\fR (1) or \fBdpkg\-buildpackage\fR (1) to build your package(s).
+.TP
+.B \-l
+Do not remove the files created by \fBbuildeb\fR.
+The default behaviour is to clean everything except the resulting packages.
+Use this option if you want to keep the .changes file.
+.TP
+.BI "\-c " file
+Use \fIfile\fR as the configuration file.
+If not specified, the file \fIbuild_config.yml\fR in the working directory will be used.
+.TP
+.BI "\-d " directory
+Use \fIdirectory\fR as the source directory.
+Your Makefile must be in this directory.
+If not specified, the working directory will be used.
+.TP
+.B \-h
+Display this help.
+.SH SEE ALSO
+.BR dh_make (8),
+.BR debuild (1),
+.BR dpkg-buildpackage (1)
+.SH AUHTOR
+The \fBbuildeb\fR program was written by Maxime Bittan
+<maxime.bittan@gmail.com> and Redha Gouicem
+<redha.gouicem@gmail.com>.
