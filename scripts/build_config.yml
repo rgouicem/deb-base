@@ -144,6 +144,10 @@ HEADERNAMES :
 # architecture independant package.
 INDNAMES : 
 
+# List the man pages related to your binaries you wish to include in your
+# binary package.
+MANPAGES :
+
 # Miscellaneous
 #--
 

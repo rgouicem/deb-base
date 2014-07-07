@@ -612,7 +612,8 @@ debian/$LIBPACKAGENAME-dev.install : $HEADERNAMES." | tee -a $LOGFILE \
     fi
 fi
 
-#Binaries will be put in `/usr/bin/` when the package is installed
+#Binaries will be put in `/usr/bin/` when the package is installed and man
+#pages installed
 
 if [ $BINPACK == true ] 
 then
@@ -620,13 +621,19 @@ then
     do
 	echo "$binary usr/bin" >> debian/$BINPACKAGENAME.install
     done;
-
     echo "Added binaries that will be included in \
-debian/$BINPACKAGENAME.install : $BINARYNAMES." | tee -a $LOGFILE $FULLLOGFILE
+debian/$BINPACKAGENAME.install : $BINARYNAMES" | tee -a $LOGFILE $FULLLOGFILE
 
     echo "usr/bin" >> debian/$BINPACKAGENAME.dirs
-    echo "Added /usr/bin to debian/$BINPACKAGENAME.dirs." | tee -a $LOGFILE \
+    echo "Added /usr/bin to debian/$BINPACKAGENAME.dirs" | tee -a $LOGFILE \
 	$FULLLOGFILE
+
+    for manpage in $MANPAGES
+    do
+	echo "$manpage" >> debian/$BINPACKAGENAME.manpages
+    done
+    echo "Added man pages that will be included in \
+debian/$BINPACKAGENAME.manpages : $MANPAGES" | tee -a $LOGFILE $FULLLOGFILE
 fi
 
 #Architecture independant files will be put in `/usr/share/INDPACKAGENAME/ 
