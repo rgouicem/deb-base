@@ -211,7 +211,7 @@ else
     then
 	LINTIAN=`readlink -f ./correct_lintian.pl`
     else
-	LINTIAN="/usr/share/buildeb-all/correct_lintian.pl"
+	LINTIAN="/usr/share/buildeb-all/correct_lintian"
     fi
 fi
 
