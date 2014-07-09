@@ -3,6 +3,7 @@
 buildeb \- Debian package building assistant
 .SH SYNOPSYS
 .B buildeb
+[\fB\-h\fR]
 [\fB\-g\fR]
 [\fB\-t\fR]
 [\fB\-l\fR]
@@ -10,26 +11,34 @@ buildeb \- Debian package building assistant
 [\fB\-d\fR \fIdirectory\fR]
 .SH DESCRIPTION
 .B buildeb
-helps you build Debian package easily.
-The only thing you need to do if fill a configuration file that can be obtained using the \fB\-g\fR option and run \fBbuildeb\fR.
+helps you build Debian packages easily. In order to do so, you have to fill a 
+configuration file.
+You can obtain one by launching \fBbuildeb\fR (1) with the 
+\fB\-g\fR option.
 .SH OPTIONS
 .TP
 .B \-g
-Generates a configuration file template named \fIbuild_config.yml\fR in the working directory.
+Generates a configuration file template named \fIbuild_config.yml\fR in the 
+working directory.
 .TP
 .B \-t
 Stops the package building process just before building the packages.
-This way, you are free to edit the configuration files located in the subdirectory debian/ of your source directory.
-You can then use \fBdebuild\fR (1) or \fBdpkg\-buildpackage\fR (1) to build your package(s).
+This way, you are free to edit the configuration files located in the 
+debian/ directory, which is located in the same directory where your makefile 
+is.
+You can then use \fBdebuild\fR (1) or \fBdpkg\-buildpackage\fR (1) to build
+your package(s).
 .TP
 .B \-l
-Do not remove the files created by \fBbuildeb\fR.
+Don't remove the files created by \fBbuildeb\fR.
 The default behaviour is to clean everything except the resulting packages.
-Use this option if you want to keep the .changes file.
+Use this option if you want to keep the .changes file, the tarballs, the source
+package, or the .build files.
 .TP
 .BI "\-c " file
 Use \fIfile\fR as the configuration file.
 If not specified, the file \fIbuild_config.yml\fR in the working directory will be used.
+If it doesn't exist, \fBbuildeb\fR will produce an error.
 .TP
 .BI "\-d " directory
 Use \fIdirectory\fR as the source directory.
@@ -37,7 +46,7 @@ Your Makefile must be in this directory.
 If not specified, the working directory will be used.
 .TP
 .B \-h
-Display this help.
+Display an help.
 .SH SEE ALSO
 .BR dh_make (8),
 .BR debuild (1),
