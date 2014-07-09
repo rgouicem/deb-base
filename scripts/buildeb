@@ -501,7 +501,7 @@ then
     echo "dh_make -i $copy -p $PACKNAME" | log
     dh_make -i $copy -p $PACKNAME < debtmpfile | log
 fi
-if [ ${PIPESTATUS[0] -ne 0 ]; then
+if [ ${PIPESTATUS[0]} -ne 0 ]; then
     echo "dh_make failed. Check your version number and your package name" >&2
     exit 7
 fi
