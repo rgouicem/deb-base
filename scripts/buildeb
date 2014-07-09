@@ -333,6 +333,11 @@ for cmd in "${commands[@]}"
 do
     echo $cmd | tee -a $LOGFILE $FULLLOGFILE
     eval "$cmd" | log
+    if [ ${PIPESTATUS[0]} ne 0 ]; then
+	cmdname=`cut -d' ' -f1 "$cmd"`
+	echo $cmdname exited with a ${PIPESTATUS[0]} status
+	exit 8
+    fi
 done
 echo "Before build commands executed..." | tee -a $LOGFILE $FULLLOGFILE
 
@@ -798,8 +803,7 @@ env echo -e "\t\n" >> debian/rules
 echo "Building source package..." | tee -a $LOGFILE $FULLLOGFILE
 echo "debuild -S -uc -us" | log
 debuild -S -uc -us | log
-
-if [ $? -ne 0 ]; then
+if [ ${PIPESTATUS[0]} ne 0 ]; then
     echo "Source package building failed." | tee -a $LOGFILE $FULLLOGFILE
     exit 6
 fi
@@ -833,7 +837,7 @@ else
     echo "Building debian packages..." | tee -a $LOGFILE $FULLLOGFILE
     echo "debuild -us -uc" | log
     debuild -us -uc | log
-    if [ $? -ne 0 ]; then
+    if [ ${PIPESTATUS[0]} ne 0 ]; then
 	echo "Package building failed." | tee -a $LOGFILE $FULLLOGFILE
 	exit 6
     fi
@@ -877,6 +881,11 @@ for cmd in "${commands[@]}"
 do
     echo $cmd | tee -a $LOGFILE $FULLLOGFILE
     eval "$cmd" | log
+    if [ ${PIPESTATUS[0]} ne 0 ]; then
+	cmdname=`cut -d' ' -f1 "$cmd"`
+	echo $cmdname exited with a ${PIPESTATUS[0]} status
+	exit 9
+    fi
 done
 
 echo "After build commands executed." | tee -a $LOGFILE $FULLLOGFILE
