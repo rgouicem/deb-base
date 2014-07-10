@@ -114,6 +114,7 @@ the directory where you"
 	    env echo -e "  -t\t\t\tStops the script before building the \
 packages. You can\n\t\t\tedit files in the debian subdirectory located where \
 your\n\t\t\tMakefile is."
+	    env echo -e "  -v\t\t\tVerbose mode."
 	    env echo -e "  -h\t\t\tPrint this help."
 	    exit 0;;
 	l)
