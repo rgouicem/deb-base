@@ -581,15 +581,12 @@ fi
 
 if [ $LIBPACK == true ]
 then
-
-#Libraries will be put in `/usr/lib/LIBPACKAGENAME/` when the package is 
-#installed
-    
     echo "rm -f debian/$LIBPACKAGENAME.install" | log
     rm -f debian/$LIBPACKAGENAME.install | log
     for library in $LIBNAMES
     do
-	echo "$library usr/lib/$LIBPACKAGENAME" >>debian/$LIBPACKAGENAME.install
+	library=`echo $library | awk '{ gsub(":"," ",$0); print $0; }'`
+	echo "$library" >>debian/$LIBPACKAGENAME.install
     done;
 
     if [ ! -z "$LIBNAMES" ] 
@@ -598,18 +595,14 @@ then
 debian/$LIBPACKAGENAME.install : $LIBNAMES." | tee -a $LOGFILE $FULLLOGFILE
     fi
 
-
-#Headers will be put in `/usr/include/LIBPACKAGENAME/` when the package is 
-#installed.
-
     if [ ! -z "$HEADERNAMES" ]
     then
 	echo "rm -f debian/$LIBPACKAGENAME-dev.install" | log
 	rm -f debian/$LIBPACKAGENAME-dev.install | log
 	for header in $HEADERNAMES
 	do
-	    echo "$header usr/include/$LIBPACKAGENAME" >>\
-debian/$LIBPACKAGENAME-dev.install
+	    header=`echo $header | awk '{ gsub(":"," ",$0); print $0; }'`
+	    echo "$header" >> debian/$LIBPACKAGENAME-dev.install
 	done;
 
 	echo "Added headers that will be included in \
@@ -621,21 +614,19 @@ debian/$LIBPACKAGENAME-dev.install : $HEADERNAMES." | tee -a $LOGFILE \
     fi
 fi
 
-#Binaries will be put in `/usr/bin/` when the package is installed and man
-#pages installed
-
 if [ $BINPACK == true ] 
 then
     for binary in $BINARYNAMES
     do
-	echo "$binary usr/bin" >> debian/$BINPACKAGENAME.install
+	binary=`echo $binary | awk '{ gsub(":"," ",$0); print $0; }'`
+	echo "$binary" >> debian/$BINPACKAGENAME.install
     done;
     echo "Added binaries that will be included in \
 debian/$BINPACKAGENAME.install : $BINARYNAMES" | tee -a $LOGFILE $FULLLOGFILE
 
-    echo "usr/bin" >> debian/$BINPACKAGENAME.dirs
-    echo "Added /usr/bin to debian/$BINPACKAGENAME.dirs" | tee -a $LOGFILE \
-	$FULLLOGFILE
+    #echo "usr/bin" >> debian/$BINPACKAGENAME.dirs
+    #echo "Added /usr/bin to debian/$BINPACKAGENAME.dirs" | tee -a $LOGFILE \
+#	$FULLLOGFILE
 
     for manpage in $MANPAGES
     do
@@ -645,21 +636,18 @@ debian/$BINPACKAGENAME.install : $BINARYNAMES" | tee -a $LOGFILE $FULLLOGFILE
 debian/$BINPACKAGENAME.manpages : $MANPAGES" | tee -a $LOGFILE $FULLLOGFILE
 fi
 
-#Architecture independant files will be put in `/usr/share/INDPACKAGENAME/ 
-#when the package is installed.
-
 if [ $INDPACK == true ]
 then
     for indep in $INDNAMES
     do
-	echo "$indep usr/share/$INDPACKAGENAME" >> \
-	    debian/$INDPACKAGENAME.install
+	indep=`echo $indep | awk '{ gsub(":"," ",$0); print $0; }'`
+	echo "$indep" >> debian/$INDPACKAGENAME.install
     done;
     echo "Added architecture independant files that will be included in \
 debian/$INDPACKAGENAME.install : $INDNAMES." | tee -a $LOGFILE $FULLLOGFILE
-    echo "usr/share" >> debian/$INDPACKAGENAME.dirs
-    echo "Added /usr/share to debian/$INDPACKAGENAME.dirs." | tee -a $LOGFILE \
-	$FULLLOGFILE
+    #echo "usr/share" >> debian/$INDPACKAGENAME.dirs
+    #echo "Added /usr/share to debian/$INDPACKAGENAME.dirs." | tee -a $LOGFILE \
+#	$FULLLOGFILE
 fi
 
 #If the user want to build library packages and a binary package, we have to

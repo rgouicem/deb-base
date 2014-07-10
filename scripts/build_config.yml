@@ -129,23 +129,28 @@ CONFIGUREFLAGS :
 # All paths must be relative to the directory where the makefile of your
 # project is located. 
 
-# List the binaries you want to include in your binary package
-BINARYNAMES : bin/testbin1 bin/testbinary
+# List the binaries you want to include in your binary package. You must put
+# the path of the file to include, followed by a colon and the relative path
+# to its installation location from / like this : `bin/testbin:usr/bin`.
+BINARYNAMES : bin/testbin1:usr/bin bin/testbinary:usr/bin
 
-# List the libraries you want to include in your library package
-LIBNAMES : lib/libTest.a
+# List the libraries you want to include in your library package. Same
+# syntax as `BINARYNAMES`.
+LIBNAMES : lib/libTest.a:usr/lib
 
-# List the headers you want to include in the -dev package
+# List the headers you want to include in the -dev package Same
+# syntax as `BINARYNAMES`.
 HEADERNAMES :
-  - lib/*.h
-  - interfaces/*.h
+  - lib/*.h:usr/include
+  - interfaces/*.h:usr/include
 
 # List the architecture independant files you want to include in your
-# architecture independant package.
+# architecture independant package. Same syntax as `BINARYNAMES`.
 INDNAMES : 
 
 # List the man pages related to your binaries you wish to include in your
-# binary package.
+# binary package. Only list man pages, do not put installation location like
+# in the previous fields.
 MANPAGES :
 
 # Miscellaneous
