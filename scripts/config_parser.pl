@@ -39,6 +39,8 @@ $config =~ s/\s*:[^\S\n]*/="/g;
 $config =~ s/([^\s][^\n]+=[^\n]+)\n/export $1";\n/g;
 # fix URLs
 $config =~ s#="//#://#g;
+# fix paths for BINARYNAMES, LIBNAMES, HEADERNAMES, INDNAMES
+$config =~ s/="="/:/g;
 
 #Remove useless spaces
 $config =~ s/\n{2,}/\n/g;
@@ -64,10 +66,6 @@ $config =~ /INDRUNDEPENDS=\"(.*?)\";/;
 $res=$1;
 $res=~s/ (?=[^\d\(\s])/, /g, $1;
 $config =~ s/INDRUNDEPENDS=\"(.*?)\";/INDRUNDEPENDS=\"$res\";/;
-
-#Checking version
-#$config =~ /VERSION=\"(.*?)\";/;
-#exit 4 if ($1 eq "");
 
 #Checking package type
 $config =~ /PACKAGETYPE=\"(.*?)\";/;
