@@ -123,12 +123,12 @@ your\n\t\t\tMakefile is."
 	d)
 	    MAKEFILEDIR="$OPTARG";;
 	g)
-	    if [ -f "/usr/share/buildeb-all/build_config.yml" ]; then
-		cp /usr/share/buildeb-all/build_config.yml .
+	    if [ -f "/usr/share/buildeb/build_config.yml" ]; then
+		cp /usr/share/buildeb/build_config.yml .
 		echo "build_config.yml successfully generated !"
 		exit 0;
 	    else
-		echo "Couldn't find build_config.yml in /usr/share/buildeb-all."
+		echo "Couldn't find build_config.yml in /usr/share/buildeb"
 		exit 1;
 	    fi
 	    ;;
@@ -178,11 +178,11 @@ fi
 #Now, we're looking for the script config_parser.pl, that will read the 
 #configuration file and produce an output like : "export NAME=VALUE", which can
 #be evaluated by the shell interpreter. This file can be located in two places.
-#It can either be in the current directory or in /usr/share/buildeb-all (It can
+#It can either be in the current directory or in /usr/share/buildeb (It can
 #be the case if the user has installed the package contening this script). 
 
 if [ ! -f "config_parser.pl" ] && \
-    [ ! -f "/usr/share/buildeb-all/config_parser" ] 
+    [ ! -f "/usr/share/buildeb/config_parser" ] 
 then
     echo "config_parser.pl is missing" >&2
     exit 2;
@@ -192,7 +192,7 @@ else
     then
 	PARSER=`readlink -f ./config_parser.pl`
     else
-	PARSER="/usr/share/buildeb-all/config_parser";
+	PARSER="/usr/share/buildeb/config_parser";
     fi
 fi
 
@@ -201,7 +201,7 @@ fi
 # missing because it is not essential when building a package.
 
 if [ ! -f "correct_lintian.pl" ] && \
-    [ ! -f "/usr/share/buildeb-all/correct_lintian" ] 
+    [ ! -f "/usr/share/buildeb/correct_lintian" ] 
 then
     echo "correct_lintian.pl is missing ! You should install the buildeb \
 package or get this script to ensure you are building nice Debian packages." >&2
@@ -211,7 +211,7 @@ else
     then
 	LINTIAN=`readlink -f ./correct_lintian.pl`
     else
-	LINTIAN="/usr/share/buildeb-all/correct_lintian"
+	LINTIAN="/usr/share/buildeb/correct_lintian"
     fi
 fi
 
