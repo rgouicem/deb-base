@@ -130,8 +130,8 @@ CONFIGUREFLAGS :
 # project is located. 
 
 # List the binaries you want to include in your binary package. You must put
-# the path of the file to include, followed by a colon and the relative path
-# to its installation location from / like this : `bin/testbin:usr/bin`.
+# the path of the file to include, followed by 2 colons and the relative path
+# to its installation location from / like this : `bin/testbin::usr/bin`.
 BINARYNAMES : bin/testbin1::usr/bin bin/testbinary::usr/bin
 
 # List the libraries you want to include in your library package. Same
