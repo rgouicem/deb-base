@@ -70,22 +70,25 @@ close COPYRIGHT;
 my$binpackdesc = $ENV{BINPACKAGEDESCFILE};
 my$libpackdesc = $ENV{LIBPACKAGEDESCFILE};
 my$indpackdesc = $ENV{INDPACKAGEDESCFILE};
+my$name="";
+my$desc="";
 if ( open DESC, $binpackdesc ) {
-    my$desc = <DESC>;
+    $desc = <DESC>;
     $desc =~ s/\n/\n /gs;
-    my$name = $ENV{BINPACKAGENAME};
+    $name = $ENV{BINPACKAGENAME};
     $control =~ s/(Package: $name[\s]+Architecture: .*?[\s]+Depends:.*?[\s]\
 +Description:) <.*?>[\s]+ <.*?>/$1 $desc\n/s;
     close DESC;
 }
 else {
-    my$name = $ENV{BINPACKAGENAME};
-    $control =~ s/(Package: $name[\s]+Architecture: .*?[\s]+Depends:.*?[\s]\
-+Description:) <.*?>[\s]+ <.*?>/$1 $name\n/s;
+    $name = $ENV{BINPACKAGENAME};
+    if ($control =~ s/(Package: $name[\s]+Architecture: .*?[\s]+Depends:.*?[\s]+Description:) <.*?>[\s]+ <.*?>/$1 $name\n/s) {
+	print "Couldn't find the binary package description file. Using package name instead.\n";
+    }
 }
 if ( open DESC, $libpackdesc ) {
-    my$desc = <DESC>;
-    my$name = $ENV{LIBPACKAGENAME};
+    $desc = <DESC>;
+    $name = $ENV{LIBPACKAGENAME};
     my@descriptions = split /\n\n/, $desc;
     $descriptions[0] =~ s/\n/\n /gs;
     $descriptions[1] =~ s/\n/\n /gs;
@@ -94,22 +97,25 @@ if ( open DESC, $libpackdesc ) {
     close DESC;
 }
 else {
-    my$name = $ENV{LIBPACKAGENAME};
-    $control =~ s/(Package: $name[\s]+Section: libs[\s]+Architecture:.*?[\s]+Depends:.*?[\s]+Description:) <.*?>[\s]+ <.*?>/$1 $name\n/s;
+    $name = $ENV{LIBPACKAGENAME};
+    if ($control =~ s/(Package: $name[\s]+Section: libs[\s]+Architecture:.*?[\s]+Depends:.*?[\s]+Description:) <.*?>[\s]+ <.*?>/$1 $name\n/s) {
+	print "Couldn't find the library package description file. Using package name instead.\n";
+    }
     $control =~ s/(Package: $name-dev[\s]+Section:.*?[\s]+Architecture:.*?[\s]+Depends:.*?[\s]+Description:) <.*?>[\s]+ <.*?>/$1 $name-dev\n/s;
 }
 if ( open DESC, $indpackdesc ) {
-    my$desc = <DESC>;
+    $desc = <DESC>;
     $desc =~ s/\n/\n /gs;
-    my$name = $ENV{INDPACKAGENAME};
+    $name = $ENV{INDPACKAGENAME};
     $control =~ s/(Package: $name[\s]+Architecture: .*?[\s]+Depends:.*?[\s]\
 +Description:) <.*?>[\s]+ <.*?>/$1 $desc\n/s;
     close DESC;
 }
 else {
-    my$name = $ENV{INDPACKAGENAME};
-    $control =~ s/(Package: $name[\s]+Architecture: .*?[\s]+Depends:.*?[\s]\
-+Description:) <.*?>[\s]+ <.*?>/$1 $name\n/s;
+    $name = $ENV{INDPACKAGENAME};
+    if ($control =~ s/(Package: $name[\s]+Architecture: .*?[\s]+Depends:.*?[\s]+Description:) <.*?>[\s]+ <.*?>/$1 $name\n/s) {
+	print "Couldn't find the arch-independant package description file. Using package name instead.\n";
+    }
 }
 $control =~ s/\n{2,}/\n\n/sg;
 
