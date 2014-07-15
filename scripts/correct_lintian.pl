@@ -69,6 +69,7 @@ close COPYRIGHT;
 # `dpkg -I` on your package.
 my$binpackdesc = $ENV{BINPACKAGEDESCFILE};
 my$libpackdesc = $ENV{LIBPACKAGEDESCFILE};
+my$indpackdesc = $ENV{INDPACKAGEDESCFILE};
 if ( open DESC, $binpackdesc ) {
     my$desc = <DESC>;
     $desc =~ s/\n/\n /gs;
@@ -76,6 +77,11 @@ if ( open DESC, $binpackdesc ) {
     $control =~ s/(Package: $name[\s]+Architecture: .*?[\s]+Depends:.*?[\s]\
 +Description:) <.*?>[\s]+ <.*?>/$1 $desc\n/s;
     close DESC;
+}
+else {
+    my$name = $ENV{BINPACKAGENAME};
+    $control =~ s/(Package: $name[\s]+Architecture: .*?[\s]+Depends:.*?[\s]\
++Description:) <.*?>[\s]+ <.*?>/$1 $name\n/s;
 }
 if ( open DESC, $libpackdesc ) {
     my$desc = <DESC>;
@@ -86,6 +92,24 @@ if ( open DESC, $libpackdesc ) {
     $control =~ s/(Package: $name[\s]+Section: libs[\s]+Architecture:.*?[\s]+Depends:.*?[\s]+Description:) <.*?>[\s]+ <.*?>/$1 $descriptions[0]\n/s;
     $control =~ s/(Package: $name-dev[\s]+Section:.*?[\s]+Architecture:.*?[\s]+Depends:.*?[\s]+Description:) <.*?>[\s]+ <.*?>/$1 $descriptions[1]\n/s;
     close DESC;
+}
+else {
+    my$name = $ENV{LIBPACKAGENAME};
+    $control =~ s/(Package: $name[\s]+Section: libs[\s]+Architecture:.*?[\s]+Depends:.*?[\s]+Description:) <.*?>[\s]+ <.*?>/$1 $name\n/s;
+    $control =~ s/(Package: $name-dev[\s]+Section:.*?[\s]+Architecture:.*?[\s]+Depends:.*?[\s]+Description:) <.*?>[\s]+ <.*?>/$1 $name-dev\n/s;
+}
+if ( open DESC, $indpackdesc ) {
+    my$desc = <DESC>;
+    $desc =~ s/\n/\n /gs;
+    my$name = $ENV{INDPACKAGENAME};
+    $control =~ s/(Package: $name[\s]+Architecture: .*?[\s]+Depends:.*?[\s]\
++Description:) <.*?>[\s]+ <.*?>/$1 $desc\n/s;
+    close DESC;
+}
+else {
+    my$name = $ENV{INDPACKAGENAME};
+    $control =~ s/(Package: $name[\s]+Architecture: .*?[\s]+Depends:.*?[\s]\
++Description:) <.*?>[\s]+ <.*?>/$1 $name\n/s;
 }
 $control =~ s/\n{2,}/\n\n/sg;
 
