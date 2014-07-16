@@ -1,0 +1,194 @@
+# Introduction
+#---
+# This configuration file lets you tweak the output package of
+# the _build\_deb.sh_ script. Note that all fields, except those in
+# the miscellaneous section, are <strong>mandatory</strong>. But it is still
+# strongly recommended to fill out every field in this file to have a proper
+# package.
+
+# This example file is filled to build a binary package, library packages and
+# an architecture independant package named test, libtest and libtest-dev at 
+# the same time, built from the same sources on an amd64 computer (the 
+# architecture of your processor doesn't matter when using this script, it's
+ #just that the output packages will have it at the end of their name).
+
+# Filling this configuration file
+#---
+# Before filling this configuration file, there are some general things
+# you should know.
+# - Paths are relative to the directory containing the makefile that builds
+#your project
+# - When asked for a list, you can put each item on the same line, separated
+# by a space, or you can write each item on a line beginning with a hyphen
+# '-', followed by a space and the item (see the examples in this file)
+
+# Program informations
+#---
+
+# Desired name of the package containing binaries (can be left empty if you
+# are not building a binary package)
+BINPACKAGENAME : snow
+
+# Desired name of the packages containing libraries (can be left empty if you
+# are not building library packages)
+LIBPACKAGENAME : libsnow
+
+# Desired name of the package containing architecture independant files (can
+# be left empty if you are not building an architecture independant package).
+# You can use the same name as in `BINPACKAGENAME` or `LIBPACKAGENAME`.
+INDPACKAGENAME : 
+
+# Program version. If left empty, the script will use the timestamp at the time
+# of the package building. If filled, you must make sure to increment the
+# version each time you build a package because you cannot upload to the
+# repository a package which version is not strictly greater than the one
+# currently available in the repository.
+VERSION : 
+
+# Copyright : you must choose from one of these values :
+# - `gpl`
+# - `gpl2`
+# - `gpl3`
+# - `lgpl`
+# - `lgpl2`
+# - `lgpl3`
+# - `artistic`
+# - `apache`
+# - `bsd`
+# - `mit`
+# - a path leading to your own copyright file.
+# If left empty, the script will search for files named `COPYING` or `LICENSE`
+# in the directory where your makefile is. If those files are not found, an
+# empty copyright file will be put in your package
+COPYRIGHT : 
+
+# Developers' names, email addresses and years of activity on this project.
+# Must be filled this way, and this way only to have a proper copyright
+# file : `years name <email>`. If left empty, the script will search for a file
+# named `AUTHORS` in the directory containing the makefile of your project.
+# If you are not using a generated copyright file
+# (ie. the field `COPYRIGHT` is a path to your own copyright file or left
+# blank), you can leave this field empty.
+DEVS :
+
+# The type of package you want to build :
+#- `s` : build a binary package (eg. `test_2.3.7_amd64.deb`)
+#- `l` : build library packages (eg. `libtest_2.3.7_amd64.deb`
+# and `libtest-dev_2.3.7_amd64.deb`)
+#- `s l` : if you want to build the three previous packages (you can also write
+#  l s).
+# Note that if you put the `s` option (respectively `l` option), the
+# `BINPACKAGENAME` (respectively `LIBPACKAGENAME`) field <strong>must<\strong>
+# be filled.
+PACKAGETYPE : s l
+
+# The list of packages your package depends on during the building process
+# (ie. when you call make).
+# You can specify some version constraints for these packages.
+# Accepted symbols are <, >, =, <= and >=.
+BUILDDEPENDS : 
+  - autoconf
+  - automake
+  - make
+  - gcc
+  - g++
+  - flex
+  - bison
+
+# The list of packages you need to have installed when using your binaries.
+# You can specify version constraints as explained for `BUILDDEPENDS` field.
+BINRUNDEPENDS :
+
+# The list of packages you need to have installed when using your libraries.
+# You can specify version constraints as explained for `BUILDDEPENDS` field.
+LIBRUNDEPENDS :
+
+# The list of packages you need to have installed when using your architecture
+# independant files.
+# You can specify version constraints as explained for `BUILDDEPENDS` field.
+INDRUNDEPENDS :
+
+# List all actions that you want to perform before starting the build procedure
+#. If you change an environment variable, or a system configuration, you 
+# <strong>have</strong> to restore the system state like it was before in the
+# `AFTERBUILD` section of this configuration file.
+BEFOREBUILD :
+  - autoreconf -vfi
+  - ./configure
+
+# List all actions that you want to perform after the building procedure is 
+# over. You <strong>have</strong> to restore what you have changed in 
+# `BEFOREBUILD` that could affect other programs.
+AFTERBUILD :
+
+# Option you want to pass for ./configure
+CONFIGUREFLAGS :
+
+# Files to include
+#-----
+
+# In this section, you can use filename expansion to avoid listing a lot of
+# files in the same directory like headers or libraries.
+# All paths must be relative to the directory where the makefile of your
+# project is located. 
+
+# List the binaries you want to include in your binary package. You must put
+# the path of the file to include, followed by 2 colons and the relative path
+# to its installation location from / like this : `bin/testbin::usr/bin`.
+BINARYNAMES : lib/cami2gspn::usr/bin lib/cami2smart::usr/bin lib/snow::usr/bin
+
+# List the libraries you want to include in your library package. Same
+# syntax as `BINARYNAMES`.
+LIBNAMES : lib/libPNet.a::usr/local/lib
+
+# List the headers you want to include in the -dev package Same
+# syntax as `BINARYNAMES`.
+HEADERNAMES :
+  - lib/*.h::usr/include
+  - interfaces/*.h::usr/include
+
+# List the architecture independant files you want to include in your
+# architecture independant package. Same syntax as `BINARYNAMES`.
+INDNAMES : 
+
+# List the man pages related to your binaries you wish to include in your
+# binary package. Only list man pages, do not put installation location like
+# in the previous fields.
+MANPAGES :
+
+# Miscellaneous
+#--
+
+# The following values are used to have a "nice" package, with someone to call
+# if there is a problem, descriptions, and so on. Therefore, those are not
+# mandatory, but <strong>strongly recommended</strong>.
+# All paths must be relative to the directory containing your makefile
+
+DISTRIBUTION : wheezy-unstable
+
+# Path to the description file of the binary package. This description will be
+# useful for the user if he wants to know what your package does before
+# installing it, using the `dpkg -I` command, or a graphical package manager.
+# You will find how to write this file in the README.md document provided with
+# the scripts.
+BINPACKAGEDESCFILE : 
+
+# Path to the description file of the library packages. Same as
+# `BINPACKAGEDESCFILE` but for the library packages (in this example, for
+# `libtest_2.3.7_amd64.deb` and `libtest-dev_2.3.7_amd64.deb`)
+LIBPACKAGEDESCFILE : 
+
+# Path to the description file of the architecture independant package. Same as
+# `BINPACKAGEDESCFILE` but for the architecture independant package
+# (in this example, for `test-all_2.3.7_all.deb`).
+INDPACKAGEDESCFILE : 
+
+# The name of this package's maintainer (it should be yours).
+DEBFULLNAME : Redha Gouicem
+
+# The e-mail address of the maintainer of this package
+DEBEMAIL : redha.gouicem@gmail.com
+
+# Homepage's URL you want to specify in your package
+HOMEPAGE : https://github.com/rgouicem/deb-libsnow
+
