@@ -161,6 +161,11 @@ MANPAGES :
 # mandatory, but <strong>strongly recommended</strong>.
 # All paths must be relative to the directory containing your makefile
 
+# The distribution your package will be in. It must match the suite of the
+# repository you wish to upload your package to. If you don't wish to upload
+# your package to a repository, you can leave this empty.
+DISTRIBUTION : wheezy-unstable
+
 # Path to the description file of the binary package. This description will be
 # useful for the user if he wants to know what your package does before
 # installing it, using the `dpkg -I` command, or a graphical package manager.
