@@ -1,7 +1,11 @@
 #! /usr/bin/perl
 
 use strict;
+use YAML::Tiny;
 use File::Basename;
+
+#The script needs two arguments : the path leading to the configuration file
+#and the path leading to the directory that contains the makefile.
 if (scalar @ARGV !=2){
     my$name=basename($0);
     print STDERR "Incorrect number of arguments\n";
@@ -9,151 +13,161 @@ if (scalar @ARGV !=2){
     exit 1;
 }
 
-my$in=shift;
-$/=undef;
+
+my$configfile=shift;
 my $dirname=shift;
+
+#Removing the final '/' of the makefile directory's path
 $dirname=$1 if ($dirname=~/^(.+)\/$/);
 
-open IN, $in;
-my$config = <IN>;
+#Create YAML parser
+my $yaml=YAML::Tiny->new;
 
-# remove comments
-$config =~ s/#.*\n//g;
-# rearrange BEFOREBUILD and AFTERBUILD lists
-$config =~ /BEFOREBUILD\s*?:\s*?(.*?)\n\n/s;
-my$res = $1;
-$res =~ s/([^\s])\n/$1;\n/sg;
-$config =~ s/(BEFOREBUILD\s*?:\s*?)(.*?)(\n\n)/$1$res$3/s;
-$config =~ /AFTERBUILD\s*?:\s*?(.*?)\n\n/s;
-my$res = $1;
-$res =~ s/([^\s])\n/$1;\n/sg;
-$config =~ s/(AFTERBUILD\s*?:\s*?)(.*?)(\n\n)/$1$res$3/s;
-# rearrange lists
-$config =~ s/\n\s*-//g;
-$config =~ s/\s*- / /g;
-# remove empty lines
-$config =~ s/\n\n/\n/g;
-# substitute : by = and put quotes
-$config =~ s/\s*:[^\S\n]*/="/g;
-# add export, end of line quotes and ;
-$config =~ s/([^\s][^\n]+=[^\n]+)\n/export $1";\n/g;
-# fix URLs
-$config =~ s#="//#://#g;
-# fix paths for BINARYNAMES, LIBNAMES, HEADERNAMES, INDNAMES
-$config =~ s/="="/:/g;
+#Reading the configuration file
+$yaml=YAML::Tiny->read($configfile);
 
-#Remove useless spaces
-$config =~ s/\n{2,}/\n/g;
-$config =~ s/^\n(.+)$/$1/sg;
+#Retrieving the data structure corresponding to the configuration file
+$yaml=$yaml->[0];
 
-#Adding comas in BUILDEPENDS, BINRUNDEPENDS, LIBRUNDEPENDS, INDRUNDEPENDS
-$config =~ /BUILDDEPENDS=\"(.*?)\";/;
-$res=$1;
-$res=~s/ (?=[^\d\(\s])/, /g, $1;
-$config =~ s/BUILDDEPENDS=\"(.*?)\";/BUILDDEPENDS=\"$res\";/;
-
-$config =~ /BINRUNDEPENDS=\"(.*?)\";/;
-$res=$1;
-$res=~s/ (?=[^\d\(\s])/, /g, $1;
-$config =~ s/BINRUNDEPENDS=\"(.*?)\";/BINRUNDEPENDS=\"$res\";/;
-
-$config =~ /LIBRUNDEPENDS=\"(.*?)\";/;
-$res=$1;
-$res=~s/ (?=[^\d\(\s])/, /g, $1;
-$config =~ s/LIBRUNDEPENDS=\"(.*?)\";/LIBRUNDEPENDS=\"$res\";/;
-
-$config =~ /INDRUNDEPENDS=\"(.*?)\";/;
-$res=$1;
-$res=~s/ (?=[^\d\(\s])/, /g, $1;
-$config =~ s/INDRUNDEPENDS=\"(.*?)\";/INDRUNDEPENDS=\"$res\";/;
-
-#Checking package type
-$config =~ /PACKAGETYPE=\"(.*?)\";/;
-exit 2 if ($1 eq "");
-my@types=split / /, $1;
-foreach my$t (@types) {
-    exit 3 if ($t ne "s" && $t ne "l" && $t ne "i");
+#Converting that data structure into something that looks like 
+#'export NAME="VALUE";'.
+my $res = "";
+foreach my $key (keys $yaml){
+    if (defined $yaml->{$key}){
+        if(ref($yaml->{$key}) eq 'ARRAY'){
+	    my @array=@{$yaml->{$key}};
+	    if($key eq "BEFOREBUILD" || $key eq "AFTERBUILD"){
+		my $commands="";
+		foreach my $cmd (@array){
+		    $commands=$commands . "$cmd; ";
+		}
+		$commands=$1 if ($commands=~/^(.+); $/);
+		$res = $res . "export $key=\"$commands\";\n";
+	    }elsif ($key eq "BUILDDEPENDS" || $key eq "BINRUNDEPENDS" ||
+		    $key eq "LIBRUNDEPENDS" || $key eq "INDRUNDEPENDS"){
+		my $dependencies="";
+		foreach my $dep (@array){
+		    $dependencies=$dependencies . "$dep, ";
+		}
+		$dependencies=$1 if ($dependencies=~/^(.+), $/);
+		$res = $res . "export $key=\"$dependencies\";\n";
+	    }elsif($key eq "DEVS"){
+		my $devs = "";
+		foreach my $dev (@array){
+		    $devs = $devs . "$dev; ";
+		}
+		$devs=$1 if ($devs =~ /^(.+;) $/);
+		$res = $res . "export $key=\"$devs\"\n";
+	    }else{
+		my $elems="";
+		foreach my $elem (@array) {
+		    $elems=$elems . "$elem ";
+		}
+		$elems=$1 if ($elems=~/^(.+) $/);
+		$res = $res . "export $key=\"$elems\";\n";
+	    }
+	}else{
+	    if($key eq "BUILDDEPENDS" || $key eq "BINRUNDEPENDS" ||
+	       $key eq "LIBRUNDEPENDS" || $key eq "INDRUNDEPENDS"){
+		my $dependencies = $yaml->{$key};
+		$dependencies=~s/ (?=[^\d\(\s])/, /g;
+		$res = $res . "export $key=\"$dependencies\";\n";
+	    }else{
+		$res = $res. "export $key=\"$yaml->{$key}\";\n";
+	    }
+	}
+    }else{
+	$res = $res . "export $key=\"\";\n";
+    }
 }
 
-#Checking BINPACKAGENAME, LIBPACKAGENAME and INDPACKAGENAME
-$config=~/BINPACKAGENAME=\"(.*?)\";/;
-exit 5 if ($1 eq "" && ($types[0] eq "s" || $types[1] eq "s" 
+#Checking if PACKAGETYPE isn't empty
+$res =~ /PACKAGETYPE=\"(.*?)\";/;
+exit 2 if ($1 eq "");
+
+#Checking if PACKAGETYPE contain valid types
+my@types=split / /, $1;
+foreach my$t (@types) {
+     exit 3 if ($t ne "s" && $t ne "l" && $t ne "i");
+}
+
+#Checking if BINPACKAGENAME should contain a value
+$res=~/BINPACKAGENAME=\"(.*?)\";/;
+exit 4 if ($1 eq "" && ($types[0] eq "s" || $types[1] eq "s" 
 			|| $types[2] eq "s"));
+#Checking if LIBPACKAGENAME should contain a value
+$res=~/LIBPACKAGENAME=\"(.*?)\";/;
+exit 5 if ($1 eq "" && ($types[0] eq "l" || $types[1] eq "l"
+ 			|| $types[2] eq "l"));
+#Checking if INDPACKAGENAME should contain a value
+$res=~/INDPACKAGENAME=\"(.*?)\";/;
+exit 6 if ($1 eq "" && ($types[0] eq "i" || $types[1] eq "i"
+ 			|| $types[2] eq "i"));
 
-$config=~/LIBPACKAGENAME=\"(.*?)\";/;
-exit 6 if ($1 eq "" && ($types[0] eq "l" || $types[1] eq "l"
-			|| $types[2] eq "l"));
-
-$config=~/INDPACKAGENAME=\"(.*?)\";/;
-exit 11 if ($1 eq "" && ($types[0] eq "i" || $types[1] eq "i"
-			|| $types[2] eq "i"));
-
-#Checking COPYRIGHT and DEVS variables
-$config =~ /DEVS=\"(.*?)\";/;
+#Retreiving the values of COPYRIGHT and DEVS variables
+$res =~ /DEVS=\"(.*?)\";/;
 my$devs=$1;
 
-$config =~ /COPYRIGHT=\"(.*?)\";/;
+$res =~ /COPYRIGHT=\"(.*?)\";/;
 my$cop=$1;
 
-#Checking if user wants a generated copyright
+#Checking if user wants a generated copyright file
 my$isvalue;
 if (($cop eq "gpl") || ($cop eq "gpl2") || ($cop eq "gpl3") || ($cop eq "lgpl")
     || ($cop eq "lgpl2") || ($cop eq "lgpl3") || ($cop eq "artistic") 
     || ($cop eq "apache") || ($cop eq "bsd") || ($cop eq "mit")){
     $isvalue=1
 }
-#if not, checking file if given, or standard files COPYING and LICENSE
+
+#If the user doesn't want a generated copyright file, we check if COPYRGIHT 
+#contains a valid path to a file. If COPYRIGHT is empty, we check if there's a
+#file named COPYING or LICENSE.
 if ($isvalue!=1) {
     exit 7 if ($cop ne "" && (! (-f "$dirname/$cop")));
     if ($cop eq "") {
 	if (-f "$dirname/COPYING") {
-	    $config =~ s/(COPYRIGHT=\")(\";)/$1COPYING$2/;
+	    $res =~ s/(COPYRIGHT=\")(\";)/$1COPYING$2/;
 	}
 	elsif (-f "$dirname/LICENSE") {
-	    $config =~ s/(COPYRIGHT=\")(\";)/$1LICENSE$2/;
+	    $res =~ s/(COPYRIGHT=\")(\";)/$1LICENSE$2/;
 	}
     }
 }
-#if generated copyright, check for devs to edit copyright file
+
+#If the user wants a generated copyright file, then we have to check if
+#the field DEVS is empty. If it is, then we check if there's a file named AUTHORS
 if ($isvalue==1) {
     if ($devs eq "") {
 	if (-f "$dirname/AUTHORS") {
 	    open AUTHORS, "$dirname/AUTHORS";
 	    my$authors = <AUTHORS>;
 	    $authors =~ s/\n/;/sg;
-	    $config =~ s/(DEVS=\")(\";)/$1$authors$2/;
+	    $res =~ s/(DEVS=\")(\";)/$1$authors$2/;
 	}
 	else {
 	    exit 8;
 	}
     }
-    else {
-	$config =~ /DEVS=(.+)/;
-	my$subst = $1;
-	$subst =~ s/>/>;/g;
-	$config =~ s/(DEVS=).+/$1$subst/;
-    }
 }
 
 #Checking if BINARYNAMES is empty
-$config =~ /BINARYNAMES=\"(.*?)\";/;
+$res =~ /BINARYNAMES=\"(.*?)\";/;
 my$bins=$1;
 exit 9 if ($bins eq "" && ($types[0] eq "s" || $types[1] eq "s"
-			   || $types[2] eq "s"));
+ 			   || $types[2] eq "s"));
 
 #Checking if LIBNAMES or HEADERNAMES is empty
-$config =~ /LIBNAMES=\"(.*?)\";/;
+$res =~ /LIBNAMES=\"(.*?)\";/;
 my$libs=$1;
-$config =~ /HEADERNAMES=\"(.*?)\";/;
+$res =~ /HEADERNAMES=\"(.*?)\";/;
 my$headers=$1;
 exit 10 if (($types[0] eq "l" || $types[1] eq "l" || $types[2] eq "l")
 	    && $libs eq "" && $headers eq "");
 
-#Checking if INDNAMES is empty
-$config =~ /INDNAMES=\"(.*?)\";/;
+# Checking if INDNAMES is empty
+$res =~ /INDNAMES=\"(.*?)\";/;
 my$inds=$1;
-exit 12 if (($types[0] eq "i" || $types[1] eq "i" || $types[2] eq "i")
-	    && $inds eq "");
+exit 11 if (($types[0] eq "i" || $types[1] eq "i" || $types[2] eq "i")
+ 	    && $inds eq "");
 
-print $config;
-close IN;
+print $res;
