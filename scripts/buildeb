@@ -2,26 +2,38 @@
 #How To Use This Script
 #----------------------
 
-#The purpose of this script is to create Debian packages. As you may know
-#there are differents types of packages. This script allows you to create two
-#differents type of packages. The first one is the binary package which contains
-#binary files. The other one is the library package. When you want to create 
+#The purpose of this script is to help you create Debian packages. As you may 
+#know there are differents types of packages. This script allows you to create 
+#three type of packages. The first one is the binary package which contains
+#binary files. The second one is the library package. When you want to build 
 #a library package, two packages are actually created. Here is a quick
 #description of those : 
-#1. `<package_name>_<version>.deb` : This is the package containing
+#1. `<package_name>_<version>.deb` : This is the package that will contain
 #the libraries.
 #2. `<package_name>-dev_<version>.deb` : This package will contain the
 #header files.
+#The last type of package that this script can help you build is the 
+#architecture independent package. This type of package doesn't depend on any
+#architecture. It's this type of package you should use if you want to build a
+#package containing configuration files, text files, scripts, or things that
+#aren't architecture dependent.
 
-#In order for this script to work correctly, some scripts and files are needed. 
-#Thoses files can be found in the same repository where you've found this
-#one. Here is a list of them :
-#1. build_config.yml : This file contains all the informations this script
+#In order for this script to work correctly, some other scripts and files are 
+#needed. Thoses files can be found in the same git repository where you've found
+#this one. If you've obtained this script via the Debian package, then all those
+#files are located in `/usr/share/buildeb/`, and you shouldn't really worry
+#about it. Here is a list of the files that we need, and what they're used for :
+#1. `build_config.yml` : This file contains all the informations this script
 #need to build the Debian packages you want. <span class='gras'>You must
-#read it, and fill it with correct informations.</span>
+#read it, and fill it with correct informations.</span> For example,
+#this is were you have to indicate what name you want your package(s) to have,
+#and other things like that. If you've installed the debian package containing
+#it, then you might want to know that this file is located in 
+#`/usr/share/buildeb`. But this script can generate a template for this file
+#if you use the `-g` option.
 #2. config_parser.pl : This perl script parses the configuration file (see 
 #above), and produces an output that look something like "export NAME=VALUE;".
-#If you've not obtained this files via the Debian Package, then this file must
+#If you've not obtained this file via the Debian Package, then this file must
 #be in the same directory where you will launch the script.
 #3. correct_lintian.pl : Perl script that correct some of the mistakes that
 #lintian (command that check the conformity of packages) detects. Although this
@@ -29,13 +41,14 @@
 #to have it, in order to build a package that complies with the Debian Policy.
 #If you've not obtained this files via the Debian Package, then this file must
 #be in the same directory where you will launch the script.
-#4. Your project needs a makefile if you want to build a binary package. Debian
-#tools need one to create binaries, in order to include them into the package.
+#4. Your project needs a makefile if you want to build packages. Debian
+#tools need one to build your project.
 
-#However, if you've obtained this script via the Debian package, then you should
-#know that the configuration file you need to fill is located in `/usr/share`.
-#You should copy it where your source code is. This is not an obligation though,
-#since you can specify where this file is located when you launch this script.
+#If you've obtained this script via the Debian package, then you should
+#know that the configuration file you need to fill is located in 
+#`/usr/share/buildeb/`. You should copy it where your source code is. This is 
+#not mandatory though, since you can specify where this file is located when 
+#you launch this script. You can also create one using the `-g` option.
 #If you want to know more about the options you can specify in the command line
 #of this script, please read the <a href='#opts'>`Parsing command line options`
 #</a> paragraph
@@ -47,37 +60,50 @@
 #1. <a href='#opts'>Parsing command line options</a>
 #2. <a href='#conf'>Reading the configuration file</a>
 #3. <a href='#makefile'>Looking for the Makefile</a>
-#4. <a href='#log'>Creating log</a>
-#5. <a href='#tarball'>Creating Tarballs</a>
-#6. <a href='#copyright'>The copyright file</a>
-#7. <a href='#lib'>Building the packages</a>
+#4. <a href='#log'>Creating logs</a>
+#5. <a href='#beforebuild'>Running before build operations</a>
+#6. <a href='#tarball'>Creating Tarballs</a>
+#7. <a href='#copyright'>The copyright file</a>
+#8. <a href='#lib'>Building the packages</a>
 #  1. <a href='#libdeb'>Creation of the Debian files</a>
 #  2. <a href='#libmod'>Modification of the Debian files</a>
 #  3. <a href='#libsource'>Creation of the source package</a>
 #  4. <a href='#libbuild'> Building the package</a>
+#9. <a href='#afterbuild'>Running After build operations</a>
 
 #<a id='opts'>Parsing command line options.</a>
 #----------------------------------------------
 
 #In this part of the script, we are parsing the arguments given to the script.
 #Here is the list of the options you can use when you call this script : 
-#- `-h` : If you want an help to be displayed.
+#- `-h` : If you want a help to be displayed.
 #- `-g` : If you want to generate a configuration file template.
-#- `-l` : Use that if you don't want the script to remove temporary files. 
+#- `-l` : Use that if you want to keep all the files generated during the build
+#of the package. 
 #Those files includes : 
 #  - The tarballs (i.e. the archives that contains your source code)
 #  - The debian directory, that is created during the build of the package. It
 #contains the configuration files used by the program which will create the 
-#package
+#package. 
+#  - `<package_name>_<version>-1.debian.tar.gz`, which is an archive containing
+#the debian directory, with the modified debian configuration files.
+#  - .build files, which are actually logs of what debuild (the tool that
+#builds the packages) prints in the standart output.
 #- `-c <configuration_file>` : This option allows you to indicate the path
-#leading to your configuration file. The path must be relative to where you
-#launch this script. This is not required. If you don't use this option,
+#leading to your configuration file. The path MUST be relative to where you
+#launch this script. This option is not mandatory. If you don't use it, 
 #then we will assume that the configuration file is in the current directory
 #(i.e. the directory where you launch this script.). We will also assume that 
 #its name is `build_config.yml`. If it's not, then you should use this option.
 #- `-d <makefile_directory>` : This option allows you to indicate in which
 #directory the makefile of your project is located. You can omit this option, if
 #the makefile is in the directory where you'll launch this script.
+#-  `-t` : This option allows you to stop the building process just before
+#we call `debuild` to build the packages. The files that have been created and
+#modifed aren't removed. This way, you can edit the files as you wish, and
+#continue the build on your own.
+#-  `-v` : Verbose mode. Without this option, everything printed on the standard
+#output goes into a log.
 
 leaveunclean=0
 quitbeforebuild=0
@@ -249,22 +275,20 @@ vars=`$PARSER $CONFIGFILE $MAKEFILEDIR`;
 res=$?;
 case $res in
     "0") eval "$vars"; echo "build_config.yml successfully scanned !";;
-    "1") exit 4;;
+    "1") echo "Incorrect call to config_parser" >&2; exit 4;;
     "2") echo "Error in build_config.yml : PACKAGETYPE is empty" >&2 ; exit 4;;
     "3") echo "Error in build_config.yml : Unknown type of package">&2 ;exit 4;;
-    "4") echo "Error in build_config.yml : Version number missing (VERSION is \
-empty)" >&2 ; exit 4;;
-    "5") echo "Error in build_config.yml : BINPACKAGENAME is empty">&2 ;exit 4;;
-    "6") echo "Error in build_config.yml : LIBPACKAGENAME is empty">&2 ;exit 4;;
+    "4") echo "Error in build_config.yml : BINPACKAGENAME is empty">&2 ;exit 4;;
+    "5") echo "Error in build_config.yml : LIBPACKAGENAME is empty">&2 ;exit 4;;
+    "6") echo "Error in build_config.yml : INDPACKAGENAME is empty">&2; exit 4;;
     "7") echo "Error in build_config.yml : COPYRIGHT variable doesn't contain \
 a path that lead to an existing file">&2 ;exit 4;;
     "8") echo "Error in build_config.yml : DEVS is empty (and it shouldn't \
-because COPYRIGHT isn't a file)" >&2 ; exit 4;;
+because COPYRIGHT isn't a file and there's no AUTHORS file)" >&2 ; exit 4;;
     "9") echo "Error in build_config.yml : BINARYNAMES is empty">&2; exit 4;;
     "10") echo "Error in build_config.yml : LIBNAMES and HEADERNAMES are \
 empty">&2;exit 4;;
-    "11") echo "Error in build_config.yml : INDPACKAGENAME is empty">&2;exit 4;;
-    "12") echo "Error in build_config.yml : INDNAMES is empty">&2; exit 4;;
+    "11") echo "Error in build_config.yml : INDNAMES is empty">&2; exit 4;;
     *) echo "Unknown error">&2;exit 4;;
 esac
 
@@ -286,7 +310,7 @@ else
     echo "Makefile found in $MAKEFILEDIR."
 fi
 
-#<a id='log'>Creating log</a>
+#<a id='log'>Creating logs</a>
 #----------------------------
 
 #We create a log file to keep track of what has been done and we define a 
@@ -825,12 +849,12 @@ echo "Lintian errors corrected." | tee -a $LOGFILE $FULLLOGFILE
 #Now, we can finally build the package. _debuild_ does pretty much all the work.
 #-us and -uc options means that we don't sign the packages.
 
-echo "rm -f ../$LIBPACKAGENAME""_$VERSION.debian.tar.gz" | log
-rm -f "../$LIBPACKAGENAME""_$VERSION.debian.tar.gz" | log
-echo "rm -f ../$BINPACKAGENAME""_$VERSION.debian.tar.gz" | log
-rm -f "../$BINPACKAGENAME""_$VERSION.debian.tar.gz" | log
-echo "rm -f ../$INDPACKAGENAME""_$VERSION.debian.tar.gz" | log
-rm -f "../$INDPACKAGENAME""_$VERSION.debian.tar.gz" | log
+echo "rm -f ../$LIBPACKAGENAME""_$VERSION-1.debian.tar.gz" | log
+rm -f "../$LIBPACKAGENAME""_$VERSION-1.debian.tar.gz" | log
+echo "rm -f ../$BINPACKAGENAME""_$VERSION-1.debian.tar.gz" | log
+rm -f "../$BINPACKAGENAME""_$VERSION-1.debian.tar.gz" | log
+echo "rm -f ../$INDPACKAGENAME""_$VERSION-1.debian.tar.gz" | log
+rm -f "../$INDPACKAGENAME""_$VERSION-1.debian.tar.gz" | log
 echo "rm -f ../*.build ../*.changes" | log
 rm -f ../*.build ../*.changes | log
 if [ $quitbeforebuild -eq 1 ]; then
@@ -863,12 +887,12 @@ then
     cd $MAKEFILEDIR/.. | log
     echo "rm -f $TARBALL" | log
     rm -f "$TARBALL" | log
-    echo "rm -f $LIBPACKAGENAME""_$VERSION.debian.tar.gz" | log
-    rm -f "$LIBPACKAGENAME""_$VERSION.debian.tar.gz" | log
-    echo "rm -f $BINPACKAGENAME""_$VERSION.debian.tar.gz" | log
-    rm -f "$BINPACKAGENAME""_$VERSION.debian.tar.gz" | log
-    echo "rm -f $INDPACKAGENAME""_$VERSION.debian.tar.gz" | log
-    rm -f "$INDPACKAGENAME""_$VERSION.debian.tar.gz" | log
+    echo "rm -f $LIBPACKAGENAME""_$VERSION-1.debian.tar.gz" | log
+    rm -f "$LIBPACKAGENAME""_$VERSION-1.debian.tar.gz" | log
+    echo "rm -f $BINPACKAGENAME""_$VERSION-1.debian.tar.gz" | log
+    rm -f "$BINPACKAGENAME""_$VERSION-1.debian.tar.gz" | log
+    echo "rm -f $INDPACKAGENAME""_$VERSION-1.debian.tar.gz" | log
+    rm -f "$INDPACKAGENAME""_$VERSION-1.debian.tar.gz" | log
     echo "rm -f *.build *.changes" | log
     rm -f *.build *.changes | log
 fi
@@ -906,4 +930,3 @@ buildeb.log is the same as the previous output, and buildeb_full.log is a \
 complete output of every program called by buildeb (compilation, package \
 building operations, etc...)." | tee -a $LOGFILE $FULLLOGFILE
 fi
-
