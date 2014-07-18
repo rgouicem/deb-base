@@ -159,8 +159,9 @@ EOF
 	v)
 	    verbosemode=1;;
 	\?)
-	    echo "Usage: `basename $0` [OPTIONS]";
-	    exit 1;;
+	    echo "Usage: `basename $0` [OPTIONS]">&2;
+	    echo "Use `basename $0` -h for more information">&2;
+	    exit 2;;
     esac
 done
 shift $(( $OPTIND - 1 ))
@@ -168,15 +169,17 @@ shift $(( $OPTIND - 1 ))
 #<a id='conf'>Reading configuration file.</a>
 #--------------------------------------------
 
-#In order for this script to run correctly, you need to complete the file named
-#'_build\_config.yml_'. This file defines a certain number of variable (like the
-#name of the packages, the version of the program, and so on ...) that this
-#script will then use to build the packages the user want. <span class='gras'>
-#Unless you've used the -c option, the configuration file must be located in 
-#the same directory where this script will be launched. </span>
+#In order for this script to run correctly, you need to complete the file 
+#normally named '_build\_config.yml_'. You can rename it if you want, but in 
+#that case you have to use the -c option.This file defines a certain number of 
+#variable (like the name of the packages, the type of packages you want to build
+#, and other things ...) that this script will then use to build the packages 
+#the user wants. <span class='gras'>Unless you've used the -c option, the 
+#configuration file must be located in the same directory where this script 
+#will be launched. </span>
  
 #So, firstly, we check if the user has used the -c option. If that is not the 
-#case (i.e. the variable CONFIGFILE is empty), then we will consider that the
+#case (i.e. the variable CONFIGFILE is empty), then we will assume that the
 #name of the configuration file is `build_config.yml`, and that it is located
 #in the directory where the script has been launched.
 
@@ -192,7 +195,7 @@ fi
 if [ ! -f "$CONFIGFILE" ] 
 then
     echo "build_config.yml is missing" >&2
-    exit 1;
+    exit 3;
 else
     echo "Configuration file `basename $CONFIGFILE` found !"
 fi
@@ -200,14 +203,14 @@ fi
 #Now, we're looking for the script config_parser.pl, that will read the 
 #configuration file and produce an output like : "export NAME=VALUE", which can
 #be evaluated by the shell interpreter. This file can be located in two places.
-#It can either be in the current directory or in /usr/share/buildeb (It can
-#be the case if the user has installed the package contening this script). 
+#It can either be in the current directory or in /usr/share/buildeb (which is
+#normally the case if the user has install the buildeb package).
 
 if [ ! -f "config_parser.pl" ] && \
     [ ! -f "/usr/share/buildeb/config_parser" ] 
 then
     echo "config_parser.pl is missing" >&2
-    exit 2;
+    exit 4;
 else
     echo "config_parser.pl found !"
     if [ -f "config_parser.pl" ]
@@ -219,8 +222,9 @@ else
 fi
 
 #Now we're looking for the script correct_lintian.pl that will correct common
-#mistakes done when building Debian packages. We won't quit if the file is 
-# missing because it is not essential when building a package.
+#mistakes that might be found in the debian files. We won't quit if the file is 
+#missing because it is not essential to correct those mistakes when building a 
+#package.
 
 if [ ! -f "correct_lintian.pl" ] && \
     [ ! -f "/usr/share/buildeb/correct_lintian" ] 
@@ -261,29 +265,30 @@ fi
 #`config_parser.pl` reads the configuration file, and produces an
 #output that looks like that : `export NAME=VALUE;`. This script checks if the
 #user has made mistakes when he was filling it (for example, it checks if 
-#the field VERSION is filled). So, we have to check if the script has
-#terminated successfully before continuing. If it hasn't, we print an error
-#message and quit the script immediatly.
+#the field PACKAGETYPE is filled and if it contains a correct value). 
+#So, we have to check if the script has terminated successfully before 
+#continuing. If it hasn't, we print an error message and quit the script 
+#immediatly.
 
 vars=`$PARSER $CONFIGFILE $MAKEFILEDIR`;
 res=$?;
 case $res in
     "0") eval "$vars"; echo "build_config.yml successfully scanned !";;
-    "1") echo "Incorrect call to config_parser" >&2; exit 4;;
-    "2") echo "Error in build_config.yml : PACKAGETYPE is empty" >&2 ; exit 4;;
-    "3") echo "Error in build_config.yml : Unknown type of package">&2 ;exit 4;;
-    "4") echo "Error in build_config.yml : BINPACKAGENAME is empty">&2 ;exit 4;;
-    "5") echo "Error in build_config.yml : LIBPACKAGENAME is empty">&2 ;exit 4;;
-    "6") echo "Error in build_config.yml : INDPACKAGENAME is empty">&2; exit 4;;
+    "1") echo "Incorrect call to config_parser" >&2; exit 6;;
+    "2") echo "Error in build_config.yml : PACKAGETYPE is empty" >&2 ; exit 7;;
+    "3") echo "Error in build_config.yml : Unknown type of package">&2 ;exit 7;;
+    "4") echo "Error in build_config.yml : BINPACKAGENAME is empty">&2 ;exit 7;;
+    "5") echo "Error in build_config.yml : LIBPACKAGENAME is empty">&2 ;exit 7;;
+    "6") echo "Error in build_config.yml : INDPACKAGENAME is empty">&2; exit 7;;
     "7") echo "Error in build_config.yml : COPYRIGHT variable doesn't contain \
-a path that lead to an existing file">&2 ;exit 4;;
+a path that lead to an existing file">&2 ;exit 7;;
     "8") echo "Error in build_config.yml : DEVS is empty (and it shouldn't \
-because COPYRIGHT isn't a file and there's no AUTHORS file)" >&2 ; exit 4;;
-    "9") echo "Error in build_config.yml : BINARYNAMES is empty">&2; exit 4;;
+because COPYRIGHT isn't a file and there's no AUTHORS file)" >&2 ; exit 7;;
+    "9") echo "Error in build_config.yml : BINARYNAMES is empty">&2; exit 7;;
     "10") echo "Error in build_config.yml : LIBNAMES and HEADERNAMES are \
-empty">&2;exit 4;;
-    "11") echo "Error in build_config.yml : INDNAMES is empty">&2; exit 4;;
-    *) echo "Unknown error">&2;exit 4;;
+empty">&2;exit 7;;
+    "11") echo "Error in build_config.yml : INDNAMES is empty">&2; exit 7;;
+    *) echo "Unknown error while parsing configuration file">&2;exit 8;;
 esac
 
 #<a id='makefile'>Looking for the Makefile</a>
@@ -299,7 +304,7 @@ MAKEFILEDIR=`pwd`;
 if [ ! -f Makefile ] 
 then
     echo "Makefile is missing" >&2
-    exit 3;
+    exit 9;
 else
     echo "Makefile found in $MAKEFILEDIR."
 fi
@@ -307,8 +312,12 @@ fi
 #<a id='log'>Creating logs</a>
 #----------------------------
 
-#We create a log file to keep track of what has been done and we define a 
-#function to have a log with a verbose mode.
+#We create two logfiles in order to help you understand what happened during the
+#build of the packages. The first one is named `buildeb.log`, and it contains
+#just enough to know if the build worked, or not. The second one is named 
+#`buildeb_full.log`, and it contains everything that is normally printed on
+#the standard output by the commands we use. Those two files are located
+#in the parent directory of the one that contains the makefile.  
 
 LOGDIR=`readlink -f $MAKEFILEDIR/..`
 LOGFILE=$LOGDIR/buildeb.log
@@ -316,6 +325,10 @@ FULLLOGFILE=$LOGDIR/buildeb_full.log
 
 :> $LOGFILE
 :> $FULLLOGFILE
+
+#This function writes what it receive on its standard input in the logfile (if
+#the user hasn't used the verbose mode) or in both the standard output and the 
+#logfile (if the user used the verbose mode).
 
 log() {
     if [[ $verbosemode -eq 1 ]]; then
@@ -356,7 +369,7 @@ do
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
 	cmdname=`cut -d' ' -f1 "$cmd"`
 	echo $cmdname exited with a ${PIPESTATUS[0]} status
-	exit 8
+	exit 10
     fi
 done
 echo "Before build commands executed..." | tee -a $LOGFILE $FULLLOGFILE
@@ -523,7 +536,7 @@ then
 fi
 if [ ${PIPESTATUS[0]} -ne 0 ]; then
     echo "dh_make failed. Check your version number and your package name" >&2
-    exit 7
+    exit 11
 fi
 
 #If the user has written a copyright file, we copy it in the debian directory
@@ -828,7 +841,7 @@ echo "debuild -S -uc -us" | log
 debuild -S -uc -us | log
 if [ ${PIPESTATUS[0]} -ne 0 ]; then
     echo "Source package building failed." | tee -a $LOGFILE $FULLLOGFILE
-    exit 6
+    exit 12
 fi
 echo "Source package successfully built." | tee -a $LOGFILE $FULLLOGFILE
 
@@ -862,7 +875,7 @@ else
     debuild -us -uc | log
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
 	echo "Package building failed." | tee -a $LOGFILE $FULLLOGFILE
-	exit 6
+	exit 13
     fi
     echo "Debian packages successfully built." | tee -a $LOGFILE $FULLLOGFILE
 fi
@@ -907,7 +920,7 @@ do
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
 	cmdname=`cut -d' ' -f1 "$cmd"`
 	echo $cmdname exited with a ${PIPESTATUS[0]} status
-	exit 9
+	exit 14
     fi
 done
 
