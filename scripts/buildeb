@@ -568,7 +568,7 @@ if [ -n $DISTRIBUTION ]; then
 fi
 
 if [ $quitbeforebuild -ne 1 ]; then
-    awk '{ if ($0 ~ /\* Initial release/) ; else print $0; }' debian/changelog > debian/changelog.tmp
+    awk '{ if ($0 ~ /\* Initial release/) print "  * Initial release"; else print $0; }' debian/changelog > debian/changelog.tmp
     mv debian/changelog.tmp debian/changelog
 fi
 
@@ -813,6 +813,8 @@ env echo -e "\nexport DH_VERBOSE=1\n" >> debian/rules
 #building multiple packages at the same time.
 
 env echo -e "\noverride_dh_auto_install:" >> debian/rules
+env echo -e "\t\n" >> debian/rules
+env echo -e "\noverride_dh_usrlocal:" >> debian/rules
 env echo -e "\t\n" >> debian/rules
 
 #<a id='libsource'>Creation of the source package</a>
