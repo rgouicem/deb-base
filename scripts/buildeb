@@ -102,8 +102,8 @@
 #we call `debuild` to build the packages. The files that have been created and
 #modifed aren't removed. This way, you can edit the files as you wish, and
 #continue the build on your own.
-#-  `-v` : Verbose mode. Without this option, everything printed on the standard
-#output goes into a log.
+#-  `-v` : Verbose mode. Without this option, everything that would normally be 
+#printed on the standard output will go into a log.
 
 leaveunclean=0
 quitbeforebuild=0
@@ -111,37 +111,31 @@ verbosemode=0
 while getopts "c:d:lgthv" opt; do
     case $opt in
 	h)
-	    echo "Usage: `basename $0` [OPTIONS]";
-	    echo "If you've not obtained this script via the debian package \
-then the files" 
-	    echo "config_parser.pl and correct_lintian.pl must be in the same \
-directory where"
-	    echo "you'll execute this script."
-	    echo "Make sure build_config.yml is correctly filled."
-	    echo "Options:"
-	    env echo -e "  -l\t\t\tDon't clean files created during the build \
-of the\n\t\t\tpackages."
-	    env echo -e "  -c <config_file>\tAllows you to indicate where your\
- configuration file"
-	    env echo -e "\t\t\tis located. If you omit this\
- option we will assume"
-	    env echo -e "\t\t\tthat it's located in the \
-directory where you've"
-	    env echo -e "\t\t\tlauched this script and \
-its name is build_config.yml"
-	    env echo -e "  -d <makefile_dir>\tPath leading to the directory \
-where your makefile is."
-	    env echo -e "\t\t\tIf you omit this option, then we \
-will assume that the"
-	    env echo -e "\t\t\tmakefile is located in the \
-the directory where you"
-	    env echo -e "\t\t\texecute this script."
-	    env echo -e "  -g\t\t\tGenerate a configuration file template."
-	    env echo -e "  -t\t\t\tStops the script before building the \
-packages. You can\n\t\t\tedit files in the debian subdirectory located where \
-your\n\t\t\tMakefile is."
-	    env echo -e "  -v\t\t\tVerbose mode."
-	    env echo -e "  -h\t\t\tPrint this help."
+	    cat <<EOF
+Usage: `basename $0` [OPTIONS]
+Helps you create Debian packages.
+If you've not obtained this script via the debian package then the files 
+config_parser.pl and correct_lintian.pl must be in the same directory where
+you'll execute this script.
+Make sure build_config.yml is correctly filled.
+
+Options :
+  -l                 Don't clean files created during the build of the packages.
+  -c <config_file>   Allows you to indicate where your configuration file is 
+                      located. If you omit this option we will assume that it's 
+                      located in the directory where you've lauched this script 
+                      and its name is build_config.yml
+  -d <makefile_dir>  Path leading to the directory where your makefile is. If 
+                      you omit this option, then we will assume that the 
+                      makefile is located in the directory where you will 
+                      execute this script.
+  -g                 Generate a configuration file template.
+  -t                 Stops the script before building the packages. You can edit
+                      files in the debian directory located where your Makefile
+                      is. 
+  -v                 Verbose mode.
+  -h                 Print this help.
+EOF
 	    exit 0;;
 	l)
 	    leaveunclean=1;;
