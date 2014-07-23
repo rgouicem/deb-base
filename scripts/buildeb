@@ -802,7 +802,7 @@ then
     libdir="-l"
     for lib in $LIBNAMES
     do
-	l=`echo $lib | grep -E -o ".+/"`
+	l=`echo $lib | awk 'BEGIN {FS="::"} {print $1}' | grep -E -o ".+/"`
 	libdir="$libdir$l:"
     done
     libdir=`echo $libdir | perl -ne 'chomp;chop;print $_'`
