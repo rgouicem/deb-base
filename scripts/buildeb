@@ -816,12 +816,16 @@ fi
 
 env echo -e "\nexport DH_VERBOSE=1\n" >> debian/rules
 
-#We tell debuild not to use `dh_auto_install` because it makes errors when
-#building multiple packages at the same time.
+#We tell debuild not to use `dh_auto_install` `dh_usrlocal` and because it
+#makes errors when building multiple packages at the same time.
 
 env echo -e "\noverride_dh_auto_install:" >> debian/rules
 env echo -e "\t\n" >> debian/rules
 env echo -e "\noverride_dh_usrlocal:" >> debian/rules
+env echo -e "\t\n" >> debian/rules
+
+#We skip tests to gain time
+env echo -e "\noverride_dh_auto_test:" >> debian/rules
 env echo -e "\t\n" >> debian/rules
 
 #<a id='libsource'>Creation of the source package</a>
