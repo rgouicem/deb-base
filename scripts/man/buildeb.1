@@ -10,38 +10,31 @@ buildeb \- Debian package building assistant
 [\fB\-d\fR \fIdirectory\fR]
 .SH DESCRIPTION
 .B buildeb
-helps you build Debian packages easily. In order to do so, you have to fill a 
-configuration file.
-You can obtain one by launching \fBbuildeb\fR (1) with the 
-\fB\-g\fR option.
+helps you build Debian packages easily. In order to do so, you have to fill a configuration file.
+You can obtain one by launching \%\fBbuildeb\fR with the \%\fB\-g\fR option.
 .SH OPTIONS
 .TP
 .B \-g
-Generates a configuration file template named \fIbuild_config.yml\fR in the 
-working directory.
+Generates a configuration file template named \%\fIbuild_config.yml\fR in the working directory.
 .TP
 .B \-t
 Stops the package building process just before building the packages.
-This way, you are free to edit the configuration files located in the 
-debian/ directory, which is located in the same directory where your makefile 
-is.
-You can then use \fBdebuild\fR (1) or \fBdpkg\-buildpackage\fR (1) to build
-your package(s).
+This way, you are free to edit the configuration files located in the \%debian/ directory, which is located in the same directory where your \%Makefile is.
+You can then use \%\fBdebuild\fR or \%\fBdpkg\-buildpackage\fR to build your package(s).
 .TP
 .B \-l
-Don't remove the files created by \fBbuildeb\fR.
-The default behaviour is to clean everything except the resulting packages.
-Use this option if you want to keep the .changes file, the tarballs, the source
-package, or the .build files.
+Don't remove the files created by \%\fBbuildeb\fR.
+The default behaviour is to clean everything except the resulting packages (source and binary).
+Use this option if you want to keep the \%.changes file, the tarballs, the \%debian/ subdirectory and the \%.build file.
 .TP
 .BI "\-c " file
-Use \fIfile\fR as the configuration file.
-If not specified, the file \fIbuild_config.yml\fR in the working directory will be used.
-If it doesn't exist, \fBbuildeb\fR will produce an error.
+Use \%\fIfile\fR as the configuration file.
+If not specified, the file \%\fIbuild_config.yml\fR in the working directory will be used.
+If it doesn't exist, \%\fBbuildeb\fR will produce an error.
 .TP
 .BI "\-d " directory
-Use \fIdirectory\fR as the source directory.
-Your Makefile must be in this directory.
+Use \%\fIdirectory\fR as the source directory.
+Your \%Makefile must be in this directory and called \%Makefile.
 If not specified, the working directory will be used.
 .TP
 .B \-v
@@ -50,10 +43,8 @@ Verbose mode.
 .B \-h
 Display an help.
 .SH SEE ALSO
-.BR dh_make (8),
-.BR debuild (1),
-.BR dpkg-buildpackage (1)
-.SH AUHTOR
-The \fBbuildeb\fR program was written by Maxime Bittan
-<maxime.bittan@gmail.com> and Redha Gouicem
-<redha.gouicem@gmail.com>.
+.BR \%dh_make (8),
+.BR \%debuild (1),
+.BR \%dpkg-buildpackage (1)
+.SH AUHTORS
+The \%\fBbuildeb\fR program was written by Maxime Bittan \%<maxime.bittan@gmail.com> and Redha Gouicem \%<redha.gouicem@gmail.com>.

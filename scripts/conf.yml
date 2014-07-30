@@ -164,6 +164,7 @@ INDNAMES :
 # binary package.
 MANPAGES :
   - man/buildeb.1
+  - man/build_config.yml.5
 
 # Miscellaneous
 #--

@@ -1,0 +1,189 @@
+.TH build_config.yml 5
+.SH NAME
+\fBbuild_config.yml\fR - buildeb configuration file
+.SH DESCRIPTION
+.B build_config.yml
+is the configuration file needed by buildeb to build a Debian package.
+.SH PACKAGE INFORMATION
+.TP
+.B BINPACKAGENAME
+The name your future binary package will have.
+Your package will be named like this : \%\fIBINPACKAGENAME\fR_\fIVERSION\fR-1_\fIarch\fR.deb.
+If not building a binary package, you can leave this field empty.
+.TP
+.B LIBPACKAGENAME
+The name your future library packages will have.
+Your packages will be named like this : \%\fILIBPACKAGENAME\fR_\fIVERSION\fR-1_\fIarch\fR.deb and \%\fILIBPACKAGENAME\fR-dev_\fIVERSION\fR-1_\fIarch\fR.deb.
+If not building library packages, you can leave this field empty.
+.TP
+.B INDPACKAGENAME
+The name your future architecture independant package will have.
+Your package will be named like this : \%\fIINDPACKAGENAME\fR_\fIVERSION\fR-1_all.deb.
+If not building an arch-independant package, you can leave this field empty.
+.TP
+.B VERSION
+Your program's version.
+If left empty, buildeb will use the timestamp of its invocation.
+You should know that not changing version when building a package again may cause some problems when uploading them to your repository (uploading is impossible, or some files are not regenerated, which makes this package impossible to download).
+.TP
+.B COPYRIGHT
+The license your program is under.
+There are three possibilities for this field :
+.RS
+.IP \[bu] 2
+Use one of the following values to use a standard license : \fBgpl\fR, \fBgpl2\fR, \fBgpl3\fR, \fBlgpl\fR, \fBlgpl2\fR, \fBlgpl3\fR, \fBartistic\fR, \fBapache\fR, \fBbsd\fR or \fBmit\fR.
+.IP \[bu]
+If you have a file named COPYING or LICENSE in your Makefile directory, leave this field blank to use you file's content.
+.IP \[bu]
+If you don't have a file named COPYING or LICENSE in your Makefile directory, leave this field empty will put a blank license in your package.
+.RE
+.TP
+.B DEVS
+The list of developpers.
+There are two possibilities for this field :
+.RS
+.IP \[bu] 2
+If you are using a generated copyright file (ie. the first option in the COPYRIGHT field), you can list the developers using this syntax : \fIyears\fR \fIname\fR <\fIemail\fR>.
+For example : 
+.IP \[] 7
+2002-2003 John Doe <john.doe@foobar.com>
+.IP \[] 2
+You can also use a file named AUTHORS in your Makefile directory to list developers.
+.IP \[bu] 2
+If you are using your own copyright file or a blank one, this field won't be used, so you should put the developers' names yourself in this file if you wish to.
+.RE
+.TP
+.B PACKAGETYPE
+A list of the package types you want to build.
+You will have to fill the other fields according to this one.
+For now, three types of packages are supported :
+.RS
+.IP \[bu] 2
+\fBs\fR : single binary package.
+Use this if you are building a package containing binaries.
+.IP \[bu] 2
+\fBl\fR : library package(s).
+Use this if you are building a package containing libraries.
+This will create two packages : the one containing the libraries themselves, and a -dev package with the headers of those libraries.
+.IP \[bu] 2
+\fBi\fR : architecture independent package.
+Use this if you are building a package containing architecture independant content.
+For example, put the images, or sound your program use in an arch-independant package and list it in the \%BINRUNDEPENDS field.
+This will help keep your binary packages smaller and avoid data duplicates.
+.RE
+.IP
+You can combine these three types to build all packages at once.
+.TP
+.B BUILDDEPENDS
+List of all the packages needed to build your package.
+For example, if you are writing a C program, put the compiler in the list.
+You must put ALL needed packages because your package's sources could be downloaded on a machine stripped down of a lot of packages to be lightweight, and the build won't work since this list is incomplete.
+You must never think that a package is installed everywhere, even the basic ones (like gcc or ssh).
+If you are using commands (in scripts or Makefile for instance) and you don't know which package they are from, do this :
+.IP \[] 7
+dpkg -S $(which \fIcommand\fR)
+.IP
+This will give you the package where you can find \fIcommand\fR.
+.TP
+.B BINRUNDEPENDS
+List of the runtime dependencies of your binary package.
+Like in the previous field, not being exhaustive will probably make your package unusable, since users won't know what is missing on their machine.
+.TP
+.B LIBRUNDEPENDS
+Same as previous field, but for your library package(s).
+.TP
+.B INDRUNDEPENDS
+Same as previous field, but for your arch-independant package.
+.TP
+.B BEFOREBUILD
+List of commands that will be run by \fBbuildeb\fR before starting the package building process.
+For example, if you are using the autotools to generate your Makefile, it could be a good idea to put something like this :
+.IP \[] 7
+autoreconf -vfi; ./configure
+.IP
+This way, you will be sure that you have a well formed Makefile for the machine you build your package on each time you launch \fBbuildeb\fR.
+.TP
+.B AFTERBUILD
+List of commands that will be run by \fBbuildeb\fR after finishing the package building process.
+.TP
+.B CONFIGUREFLAGS
+The flags you want \fBbuildeb\fR to pass when launching the configure script.
+In the building process, \fBbuildeb\fR will launch autoreconf and configure on his own, so if you have particular flags for configure, you have to list them here.
+If you are not using the autotools to generated you Makefile, you can ignore this field.
+.SH FILES TO INCLUDE
+In this section, you will have to list the files you wish to include in your package(s).
+A particular syntax is used and must be respected or you will probably have an error at the end of the package building process.
+The syntax is as follows :
+.IP \[] 7
+\fIfile\fR::\fIpath\fR
+.TP
+where \fIfile\fR is the relative path to the file to include from the Makefile directory and \fIpath\fR is the relative path to the installation directory of the file from /.
+.TP
+Note that you \fBmust\fR omit the starting / in \fIpath\fR.
+.TP
+In \fIfile\fR, you can use the * joker when you have multiple files matching a pattern.
+.TP
+For example, my Makefile is in \fI~/foo\fR, and I want to include a binary (\fI~/foo/bin/bar\fR) in /usr/bin, a library (\fI~/foo/lib/libfoo.a\fR) in /usr/lib/libtest and some headers (in \fI~/foo/include\fR, all with a .h extension) in /usr/include/libtest.
+.TP
+We will have something like this (each line in its respective field).
+.IP \[] 7
+- bin/bar::usr/bin
+.IP \[] 7
+- lib/libfoo.a::usr/lib/libtest
+.IP \[] 7
+- include/*.h::usr/include/libtest
+.TP
+.B BINARYNAMES
+List the binaries you want to include in your binary package.
+.TP
+.B LIBNAMES
+List the libraries you want to include in your library package.
+.TP
+.B HEADERNAMES
+List the headers you want to include in the -dev package.
+.TP
+.B INDNAMES
+List the architecture independant files you want to include in your architecture independant package.
+.TP
+.B MANPAGES
+List the man pages related to your binaries you wish to include in your binary package.
+Only list man pages, do not put installation location like in the previous fields.
+.SH MISCELLANEOUS
+.TP
+.B DISTRIBUTION
+The distribution your package will be in.
+It must match the suite of the repository you wish to upload your package to.
+If you don't wish to upload your package to a repository, you can leave this empty (defaults to unstable).
+.TP
+.B BINPACKAGEDESCFILE
+Path to the description file of the binary package.
+This description will be useful for the user if he wants to know what your package does before installing it, using the `dpkg -I` command, or a graphical package manager.
+This description must follow a particular format : 
+.IP \[bu] 2
+The first line is a short decription that shouldn't be longer than 80 characters.
+.IP \[bu]
+The following lines are the long description of the package.
+.IP \[bu]
+There must be no blank lines in this file.
+.IP \[bu]
+A single \fB.\fR (dot) will make a newline in the package description.
+.TP
+.B LIBPACKAGEDESCFILE
+Same thing as above, except that this file will contain two descriptions : the one for the library package and the one for the -dev package (containing headers).
+These two descriptions must follow the same rules as above and are separated by a blank line.
+.TP
+.B INDPACKAGEDESCFILE
+Same as BINPACKAGEDESCFILE.
+.TP
+.B DEBFULLNAME
+The name of the package maintainer (it should be you).
+.TP
+.B DEBEMAIL
+The email address of the package maintainer.
+.TP
+.B HOMEPAGE
+The program's homepage.
+.SH SEE ALSO
+.BR buildeb (1)
+.SH AUTHORS
+The \%\fBbuildeb\fR program was written by Maxime Bittan \%<maxime.bittan@gmail.com> and Redha Gouicem \%<redha.gouicem@gmail.com>.
