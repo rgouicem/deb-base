@@ -108,7 +108,7 @@
 leaveunclean=0
 quitbeforebuild=0
 verbosemode=0
-while getopts "c:d:lgthv" opt; do
+while getopts "c:d:lgthV" opt; do
     case $opt in
 	h)
 	    cat <<EOF
@@ -133,7 +133,7 @@ Options :
   -t                 Stops the script before building the packages. You can edit
                       files in the debian directory located where your Makefile
                       is. 
-  -v                 Verbose mode.
+  -V                 Verbose mode.
   -h                 Print this help.
 EOF
 	    exit 0;;
@@ -156,7 +156,7 @@ EOF
 	t)
 	    quitbeforebuild=1;
 	    leaveunclean=1;;
-	v)
+	V)
 	    verbosemode=1;;
 	\?)
 	    echo "Usage: `basename $0` [OPTIONS]">&2;
