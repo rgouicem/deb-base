@@ -368,7 +368,7 @@ do
     echo " > $cmd" | tee -a $LOGFILE $FULLLOGFILE
     eval "$cmd" | log
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
-	cmdname=`cut -d' ' -f1 "$cmd"`
+	cmdname=`echo $cmd | cut -d' ' -f1 $cmd`
 	echo $cmdname exited with a ${PIPESTATUS[0]} status
 	exit 10
     fi
@@ -870,7 +870,7 @@ do
     echo " > $cmd" | tee -a $LOGFILE $FULLLOGFILE
     eval "$cmd" | log
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
-	cmdname=`cut -d' ' -f1 "$cmd"`
+	cmdname=`echo $cmd | cut -d' ' -f1`
 	echo $cmdname exited with a ${PIPESTATUS[0]} status
 	exit 14
     fi
